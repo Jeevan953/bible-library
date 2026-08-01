@@ -1,0 +1,970 @@
+#root {
+  min-height: 100vh;
+}
+
+.app {
+  min-height: 100vh;
+  color: #172033;
+  background:
+    radial-gradient(circle at top left, #dbeafe 0, transparent 35%),
+    #f7f9fc;
+}
+
+.site-header {
+  min-height: 72px;
+  padding: 0 7%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+  background: #111c36;
+  box-shadow: 0 4px 20px rgb(15 23 42 / 18%);
+}
+
+.brand-mark {
+  margin-right: 10px;
+  color: #f6c453;
+  font-size: 1.4rem;
+}
+
+.brand {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.site-header nav {
+  display: flex;
+  gap: 24px;
+}
+
+.site-header a {
+  color: #dbe4f5;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-header a:hover {
+  color: white;
+}
+
+ /* Full-width reader and parallel pages */
+
+main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+ .hero {
+  width: 100%;
+  margin: 0;
+  padding: 90px clamp(18px, 3vw, 60px) 70px;
+  box-sizing: border-box;
+}
+
+.versions-section {
+  width: 100%;
+  margin: 0;
+  padding: 0 clamp(18px, 3vw, 60px) 80px;
+  box-sizing: border-box;
+}
+
+.version-grid {
+  width: 100%;
+}
+
+.reader-page,
+.parallel-page {
+  width: 100%;
+  padding: 48px clamp(18px, 3vw, 60px) 80px;
+  box-sizing: border-box;
+}
+
+.reader-card,
+.parallel-card {
+  width: 100%;
+  max-width: none;
+}
+
+#reader,
+#parallel {
+  width: 100%;
+}
+
+.hero {
+  padding: 90px 0 70px;
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 780px;
+  margin: 0 auto 18px;
+  color: #111c36;
+  font-size: clamp(2.4rem, 6vw, 4.6rem);
+  line-height: 1.05;
+}
+
+.hero > p:last-child {
+  max-width: 650px;
+  margin: auto;
+  color: #64748b;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.versions-section {
+  padding-bottom: 80px;
+}
+
+.section-heading {
+  margin-bottom: 26px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.section-heading h2 {
+  margin: 0;
+  color: #111c36;
+  font-size: 2rem;
+}
+
+.version-count {
+  padding: 8px 14px;
+  color: #1d4ed8;
+  background: #dbeafe;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.version-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.version-card {
+  padding: 26px;
+  background: white;
+  border: 1px solid #e4eaf2;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgb(15 23 42 / 7%);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.version-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 38px rgb(15 23 42 / 12%);
+}
+
+.version-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.abbreviation {
+  padding: 7px 11px;
+  color: white;
+  background: #2563eb;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.language {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.version-card h3 {
+  min-height: 58px;
+  margin: 24px 0 8px;
+  color: #172033;
+  font-size: 1.25rem;
+}
+
+.year {
+  margin-bottom: 24px;
+  color: #64748b;
+}
+
+.version-card button {
+  width: 100%;
+  padding: 12px 18px;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.version-card button:hover {
+  color: white;
+  background: #2563eb;
+}
+
+.status {
+  padding: 20px;
+  text-align: center;
+  background: white;
+  border-radius: 12px;
+}
+
+.status.error {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+@media (max-width: 800px) {
+  .site-header {
+    padding: 18px 6%;
+  }
+
+  .site-header nav {
+    display: none;
+  }
+
+  main {
+    width: 90%;
+  }
+
+  .hero {
+    padding: 65px 0 50px;
+  }
+
+  .version-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.version-card button:disabled {
+  color: #94a3b8;
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
+.version-card button:disabled:hover {
+  color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.reader-page {
+  padding: 48px 0 80px;
+}
+
+.back-button {
+  margin-bottom: 24px;
+  padding: 10px 16px;
+  color: #1d4ed8;
+  background: #eaf2ff;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.reader-toolbar {
+  margin-bottom: 28px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  background: white;
+  border: 1px solid #e4eaf2;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgb(15 23 42 / 6%);
+}
+
+.reader-toolbar label {
+  display: grid;
+  gap: 8px;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.reader-toolbar select {
+  width: 100%;
+  padding: 12px;
+  color: #172033;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+}
+
+.reader-card {
+  padding: clamp(24px, 5vw, 58px);
+  background: white;
+  border: 1px solid #e4eaf2;
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgb(15 23 42 / 8%);
+}
+
+.reader-heading {
+  margin-bottom: 36px;
+  padding-bottom: 24px;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.reader-heading p {
+  margin: 0 0 8px;
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.reader-heading h1 {
+  margin: 0;
+  color: #111c36;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+}
+
+ /* Make chapter verse content full width */
+
+.verse-list {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.verse {
+  width: 100%;
+}
+
+.verse {
+  margin: 0;
+  padding: 13px 0;
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  color: #273449;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.12rem;
+  line-height: 1.8;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.verse sup {
+  color: #2563eb;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .reader-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .reader-card {
+    padding: 22px;
+  }
+
+  .verse {
+    grid-template-columns: 30px 1fr;
+    font-size: 1rem;
+  }
+}
+
+.chapter-navigation {
+  margin-top: 42px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.chapter-navigation button {
+  min-width: 170px;
+  padding: 13px 20px;
+  color: white;
+  background: #2563eb;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.chapter-navigation button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.chapter-navigation button:disabled {
+  color: #94a3b8;
+  background: #e2e8f0;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .chapter-navigation {
+    flex-direction: column;
+  }
+
+  .chapter-navigation button {
+    width: 100%;
+  }
+}
+
+.parallel-page {
+  padding: 48px 0 80px;
+}
+
+.parallel-toolbar {
+  margin-bottom: 28px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  background: white;
+  border: 1px solid #e4eaf2;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgb(15 23 42 / 6%);
+}
+
+.parallel-toolbar label {
+  display: grid;
+  gap: 8px;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.parallel-toolbar select {
+  width: 100%;
+  padding: 12px;
+  color: #172033;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+}
+
+.parallel-card {
+  padding: 28px;
+  background: white;
+  border: 1px solid #e4eaf2;
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgb(15 23 42 / 8%);
+}
+
+.parallel-heading {
+  margin-bottom: 26px;
+  text-align: center;
+}
+
+.parallel-heading p {
+  margin: 0 0 8px;
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.parallel-heading h1 {
+  margin: 0;
+  color: #111c36;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+}
+
+.parallel-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #dbe3ee;
+  border-radius: 12px;
+}
+
+.parallel-table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+}
+
+.parallel-table th,
+.parallel-table td {
+  padding: 18px;
+  text-align: left;
+  vertical-align: top;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.parallel-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  color: white;
+  background: #172554;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.parallel-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 80px;
+  min-width: 80px;
+}
+
+.parallel-table thead th:first-child {
+  z-index: 3;
+}
+
+.parallel-table tbody th {
+  color: #2563eb;
+  background: #f8fafc;
+}
+
+.parallel-table td {
+  min-width: 300px;
+  color: #273449;
+  background: white;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.missing-text {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+@media (max-width: 700px) {
+  .parallel-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .parallel-card {
+    padding: 14px;
+  }
+}
+
+.search-page {
+  width: 100%;
+  padding: 48px clamp(18px, 3vw, 60px) 80px;
+  box-sizing: border-box;
+}
+
+.search-panel {
+  padding: 28px;
+  background: white;
+  border: 1px solid #e4eaf2;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgb(15 23 42 / 7%);
+}
+
+.search-heading {
+  margin-bottom: 24px;
+}
+
+.search-heading p {
+  margin: 0 0 6px;
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.search-heading h1 {
+  margin: 0;
+  color: #111c36;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.search-form {
+  display: grid;
+  grid-template-columns: 220px 1fr auto;
+  align-items: end;
+  gap: 18px;
+}
+
+.search-form label {
+  display: grid;
+  gap: 8px;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.search-form select,
+.search-form input {
+  width: 100%;
+  padding: 13px;
+  color: #172033;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+}
+
+.search-button {
+  min-width: 130px;
+  padding: 13px 22px;
+  color: white;
+  background: #2563eb;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.search-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.search-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.search-results {
+  margin-top: 28px;
+}
+
+.search-summary {
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: white;
+  border: 1px solid #e4eaf2;
+  border-radius: 14px;
+}
+
+.search-summary h2 {
+  margin: 0;
+  color: #111c36;
+}
+
+.search-summary span {
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.result-list {
+  display: grid;
+  gap: 14px;
+}
+
+.search-result {
+  padding: 22px 26px;
+  background: white;
+  border: 1px solid #e4eaf2;
+  border-left: 5px solid #2563eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgb(15 23 42 / 5%);
+}
+
+.search-result h3 {
+  margin: 0 0 10px;
+  color: #2563eb;
+}
+
+.search-result p {
+  margin: 0;
+  color: #273449;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.search-pagination {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+}
+
+.search-pagination button {
+  padding: 11px 20px;
+  color: white;
+  background: #2563eb;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.search-pagination button:disabled {
+  color: #94a3b8;
+  background: #e2e8f0;
+  cursor: not-allowed;
+}
+
+.search-pagination span {
+  color: #475569;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .search-form {
+    grid-template-columns: 1fr;
+  }
+
+  .search-button {
+    width: 100%;
+  }
+
+  .search-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.search-result-link {
+  margin: 0 0 10px;
+  padding: 0;
+  color: #2563eb;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-align: left;
+}
+
+.search-result-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.highlighted-verse {
+  padding-left: 14px;
+  background: #fff7d6;
+  border-left: 5px solid #f59e0b;
+  border-radius: 6px;
+  scroll-margin-top: 130px;
+  animation: verse-highlight 1.2s ease;
+}
+
+@keyframes verse-highlight {
+  from {
+    background: #fde68a;
+    transform: scale(1.01);
+  }
+
+  to {
+    background: #fff7d6;
+    transform: scale(1);
+  }
+}
+
+/* Stronger fonts throughout the application */
+body,
+button,
+input,
+select,
+option {
+  font-weight: 600;
+}
+
+/* Bible Reader verses */
+.verse {
+  font-weight: 600;
+}
+
+/* Search result text */
+.search-result-card p,
+.search-results p {
+  font-weight: 600;
+}
+
+/* Parallel Bible text */
+.parallel-table td {
+  font-weight: 600;
+}
+
+/* Version details */
+.version-card p,
+.version-card h3 {
+  font-weight: 600;
+}
+
+.pdf-button {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  color: white;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  background: #172554;
+  border-radius: 10px;
+}
+
+.pdf-button:hover {
+  background: #2563eb;
+}
+
+/* Scrollable wide parallel comparison */
+.parallel-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-color: #2563eb #dbeafe;
+  scrollbar-width: auto;
+}
+
+ .parallel-table {
+  width: 100%;
+  min-width: 1700px;
+  table-layout: fixed;
+}
+
+/* Share the available width between all translations */
+.parallel-table th:not(:first-child),
+.parallel-table td:not(:first-child) {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+
+/* Allow long English and Tamil words to wrap */
+.parallel-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+/* Keep verse numbers visible while scrolling */
+.parallel-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 75px;
+  min-width: 75px;
+}
+
+.parallel-table thead th:first-child {
+  z-index: 3;
+  background: #172554;
+}
+
+.parallel-table tbody th:first-child {
+  background: #f8fafc;
+}
+
+.table-scroll-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.table-scroll-controls button {
+  padding: 10px 18px;
+  color: white;
+  font-weight: 700;
+  background: #2563eb;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.table-scroll-controls button:hover {
+  background: #172554;
+}
+
+.parallel-version-picker {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.parallel-version-picker legend {
+  padding: 0 7px;
+  color: #172554;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.parallel-version-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.parallel-version-options label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  font-weight: 800;
+  background: #eff6ff;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.parallel-version-options input {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+}
+
+/* Keep Know Your Bible visible while scrolling */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Leave space for the fixed site header */
+html {
+  scroll-padding-top: 90px;
+}
+
+/* Reduce Parallel Bible chapter heading */
+.parallel-heading h1 {
+  margin: 8px 0 24px;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 1.1;
+}
+
+/* Keep table headings below the site header */
+.parallel-table thead th {
+  top: 0;
+}
+
+.divine-name {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+/* Decorative first letter of verse 1 */
+.verse-text {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.first-verse-text::first-letter {
+  float: left;
+  margin: 0.08em 0.14em 0 0;
+  color: #d29b21;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 0.75;
+  text-shadow:
+    1px 1px 0 #fff,
+    2px 2px 3px rgb(15 23 42 / 18%);
+}
+
+.red-letter {
+  color: #c1121f;
+  font-weight: 700;
+}

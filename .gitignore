@@ -1,0 +1,42 @@
+# Python virtual environment
+.venv/
+venv/
+
+# Python generated files
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Django database and runtime files
+*.sqlite3
+*.sqlite3-*
+backend/data/
+backend/media/
+backend/staticfiles/
+*.log
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# React / Node generated files
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test and coverage output
+.coverage
+htmlcov/
+coverage/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
