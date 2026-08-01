@@ -6,10 +6,11 @@ import { getVersions } from "./services/bibleApi";
 import SearchPage from "./SearchPage";
 import "./App.css";
 
-const MEDIA_URL = (
+const MEDIA_URL =
   import.meta.env.VITE_MEDIA_URL ||
-  "http://127.0.0.1:8000/media"
-).replace(/\/+$/, "");
+  (import.meta.env.DEV
+    ? "http://127.0.0.1:8000/media"
+    : "");
 
 function App() {
   const [versions, setVersions] = useState([]);
@@ -227,7 +228,8 @@ function App() {
                         : "Text not imported"}
                     </button>
 
-                   {version.pdf_filename && (
+                   {MEDIA_URL && version.pdf_filename && (
+
   <a
     className="pdf-button"
     href={`${MEDIA_URL}/${encodeURIComponent(
