@@ -1193,3 +1193,222 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* Bible Library home page */
+
+.library-home {
+  min-height: calc(100vh - 72px);
+  padding: 70px clamp(22px, 7vw, 120px);
+  background: linear-gradient(135deg, #f8fafc, #eff6ff);
+}
+
+.library-home-hero {
+  max-width: 1000px;
+  margin: 0 auto 65px;
+  text-align: center;
+}
+
+.library-home-hero h1 {
+  margin: 6px 0 22px;
+  color: #102a88;
+  font-size: clamp(3rem, 8vw, 5.2rem);
+}
+
+.library-home-hero h2 {
+  color: #172554;
+  font-size: clamp(1.15rem, 3vw, 1.55rem);
+}
+
+.library-home-hero > p:last-of-type {
+  color: #64748b;
+  font-size: 1.08rem;
+  line-height: 1.8;
+}
+
+.library-home-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+
+.library-home-actions button,
+.library-collection button,
+.library-information button {
+  padding: 15px 25px;
+  border: 1px solid #2563eb;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.library-primary-button {
+  color: white;
+  background: #1859c9;
+}
+
+.library-secondary-button,
+.library-collection button,
+.library-information button {
+  color: #174ea6;
+  background: white;
+}
+
+.library-home-actions button:disabled {
+  color: #94a3b8;
+  border-color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.library-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.library-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 140px;
+  padding: 24px;
+  border: 1px solid #dbe3ee;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 12px 35px rgb(15 23 42 / 6%);
+}
+
+.library-stat-icon {
+  display: grid;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border-radius: 18px;
+  background: #eaf2ff;
+  font-size: 1.8rem;
+}
+
+.library-stat-card strong {
+  color: #1859c9;
+  font-size: 1.8rem;
+}
+
+.library-stat-card h3 {
+  margin: 5px 0;
+  color: #111c36;
+}
+
+.library-stat-card p {
+  margin: 0;
+  color: #64748b;
+}
+
+.library-information-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 34px;
+}
+
+.library-information {
+  display: flex;
+  gap: 22px;
+  padding: 32px;
+  border: 1px solid;
+  border-radius: 22px;
+}
+
+.about-summary {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.recently-added {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.library-information-icon {
+  display: grid;
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #2563eb;
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+.recently-added .library-information-icon {
+  background: #16a34a;
+}
+
+.library-information h2 {
+  margin-top: 0;
+  color: #123b83;
+}
+
+.library-information p {
+  color: #334155;
+  line-height: 1.75;
+}
+
+.library-information button {
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+}
+
+.library-collection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  margin-top: 34px;
+  padding: 34px;
+  border: 1px solid #dbe3ee;
+  border-radius: 22px;
+  background: white;
+}
+
+.library-collection h2 {
+  color: #111c36;
+}
+
+.library-collection p {
+  color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .library-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .library-information-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .library-home {
+    padding: 40px 16px;
+  }
+
+  .library-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .library-information {
+    padding: 24px 20px;
+  }
+
+  .library-collection {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
