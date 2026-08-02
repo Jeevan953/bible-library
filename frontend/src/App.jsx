@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-
+import AboutPage from "./AboutPage";
 import BibleReader from "./BibleReader";
 import ParallelReader from "./ParallelReader";
 import { getVersions } from "./services/bibleApi";
@@ -18,6 +18,7 @@ function App() {
   const [readerLocation, setReaderLocation] = useState(null);
   const [showParallel, setShowParallel] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -42,8 +43,43 @@ function App() {
     setSelectedVersion(null);
     setError("");
     setShowParallel(false);
+    setShowAbout(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+function openAbout(event) {
+  event.preventDefault();
+
+  setSelectedVersion(null);
+  setReaderLocation(null);
+  setShowSearch(false);
+  setShowParallel(false);
+  setShowAbout(true);
+
+  window.history.replaceState(null, "", "#about");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function openVersions(event) {
+  event.preventDefault();
+
+  setSelectedVersion(null);
+  setReaderLocation(null);
+  setShowSearch(false);
+  setShowParallel(false);
+  setShowAbout(false);
+
+  window.history.replaceState(null, "", "#versions");
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.getElementById("versions")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  });
+}
 
     function openSearchResult(abbreviation, result) {
   const version = versions.find(
@@ -76,8 +112,17 @@ function App() {
         </div>
 
         <nav>
-          <a href="#versions" onClick={returnHome}>
-            Versions
+           <a href="#home" onClick={returnHome}>
+    Home
+  </a>
+
+  <a href="#about" onClick={openAbout}>
+    About
+  </a>
+
+  <a href="#versions" onClick={openVersions}>
+    Versions
+         
           </a>
 
           <a
@@ -92,6 +137,7 @@ function App() {
 
     setShowSearch(false);
     setShowParallel(false);
+    setShowAbout(false);
     setReaderLocation(null);
     setSelectedVersion(readerVersion || null);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -108,6 +154,7 @@ function App() {
     setReaderLocation(null);
     setShowParallel(false);
     setShowSearch(true);
+    setShowAbout(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }}
 >
@@ -121,6 +168,7 @@ function App() {
     setReaderLocation(null);
     setShowParallel(true);
     setShowSearch(false);
+    setShowAbout(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }}
 >
@@ -130,7 +178,9 @@ function App() {
       </header>
 
       <main>
-  {showSearch ? (
+  {showAbout ? (
+  <AboutPage onBack={returnHome} />
+) : showSearch ? (
     <SearchPage
       versions={versions.filter((item) => item.available)}
       onOpenResult={openSearchResult}
@@ -193,6 +243,7 @@ function App() {
               )}
 
               <div className="version-grid">
+               <section id="versions" className="versions-section">
                 {versions.map((version) => (
                   <article
                     className="version-card"

@@ -1093,3 +1093,103 @@ html {
   }
 }
 
+/* About page */
+
+.about-page {
+  min-height: calc(100vh - 72px);
+  padding: 48px clamp(18px, 6vw, 90px) 80px;
+  background: linear-gradient(135deg, #eaf3ff, #f8fafc);
+}
+
+.about-card {
+  max-width: 1200px;
+  margin: 30px auto 0;
+  padding: clamp(28px, 5vw, 64px);
+  border: 1px solid #dbe3ee;
+  border-radius: 24px;
+  background: white;
+  box-shadow: 0 20px 50px rgb(15 23 42 / 8%);
+}
+
+.about-heading {
+  max-width: 800px;
+  margin: 0 auto 48px;
+  text-align: center;
+}
+
+.about-heading > p:first-child {
+  margin-bottom: 10px;
+  color: #2563eb;
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 800;
+}
+
+.about-heading h1 {
+  margin: 0;
+  color: #111c36;
+  font-size: clamp(2.2rem, 6vw, 4rem);
+}
+
+.about-introduction {
+  margin-top: 18px;
+  color: #52627a;
+  font-size: 1.15rem;
+  line-height: 1.8;
+}
+
+.about-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.about-feature-grid section {
+  padding: 28px;
+  border: 1px solid #dbe3ee;
+  border-radius: 18px;
+  background: #f8fbff;
+}
+
+.about-feature-grid h2,
+.about-source h2 {
+  color: #111c36;
+}
+
+.about-feature-grid p,
+.about-source p {
+  color: #52627a;
+  line-height: 1.75;
+}
+
+.about-icon {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 2rem;
+}
+
+.about-source {
+  margin-top: 28px;
+  padding: 28px;
+  border-radius: 18px;
+  background: #eff6ff;
+}
+
+/* Six mobile navigation buttons */
+
+@media (max-width: 800px) {
+  .site-header nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .about-page {
+    padding: 24px 16px 50px;
+  }
+
+  .about-card {
+    padding: 28px 20px;
+  }
+
+  .about-feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
