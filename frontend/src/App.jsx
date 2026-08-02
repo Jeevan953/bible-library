@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AboutPage from "./AboutPage";
+import HomePage from "./HomePage";
 import BibleReader from "./BibleReader";
 import ParallelReader from "./ParallelReader";
 import { getVersions } from "./services/bibleApi";
@@ -19,6 +20,7 @@ function App() {
   const [showParallel, setShowParallel] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showHome, setShowHome] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
