@@ -96,3 +96,73 @@ class VerseText(models.Model):
 
     def __str__(self):
         return f"{self.bible_version.abbreviation} — {self.verse}"
+
+class ProperName(models.Model):
+    class Category(models.TextChoices):
+        PERSON = "PERSON", "Person"
+        PLACE = "PLACE", "Place"
+        OTHER = "OTHER", "Other"
+
+    category = models.CharField(
+        max_length=10,
+        choices=Category.choices,
+        db_index=True,
+    )
+
+    # Example: Aaron@Exo.4.14-Heb=H0175
+    entry_key = models.CharField(
+        max_length=300,
+        unique=True,
+    )
+
+    display_name = models.CharField(
+        max_length=200,
+        db_index=True,
+    )
+
+    description = models.TextField(blank=True)
+    entry_type = models.CharField(
+        max_length=100,
+        blank=True,
+        db_index=True,
+    )
+    summary = models.TextField(blank=True)
+
+    briefest = models.TextField(blank=True)
+    brief = models.TextField(blank=True)
+    short_description = models.TextField(blank=True)
+    article = models.TextField(blank=True)
+
+    all_names = models.TextField(blank=True)
+    strong_numbers = models.TextField(blank=True)
+
+    # Normalized reference strings such as:
+    # ["Job.26.6", "Job.28.22", "Rev.9.11"]
+    references = models.JSONField(
+        default=list,
+        blank=True,
+    )
+
+    # Every “Named”, “Greek”, “Variant”, etc. sub-record.
+    forms = models.JSONField(
+        default=list,
+        blank=True,
+    )
+
+    # Family relationships, map links and other category fields.
+    details = models.JSONField(
+        default=dict,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["display_name", "entry_key"]
+        indexes = [
+            models.Index(
+                fields=["category", "display_name"],
+                name="proper_name_category_name",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.display_name} ({self.category})"
