@@ -122,7 +122,7 @@ function openVersions(event) {
 
   <a href="#versions" onClick={openVersions}>
     Versions
-         
+
           </a>
 
           <a
@@ -243,7 +243,6 @@ function openVersions(event) {
               )}
 
               <div className="version-grid">
-               <section id="versions" className="versions-section">
                 {versions.map((version) => (
                   <article
                     className="version-card"
