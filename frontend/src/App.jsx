@@ -1,29 +1,32 @@
 import { useEffect, useState } from "react";
+
 import AboutPage from "./AboutPage";
-import HomePage from "./HomePage";
 import BibleReader from "./BibleReader";
+import HomePage from "./HomePage";
 import ParallelReader from "./ParallelReader";
-import { getVersions } from "./services/bibleApi";
 import SearchPage from "./SearchPage";
+import { getVersions } from "./services/bibleApi";
+
 import "./App.css";
 
-const MEDIA_URL =
+const MEDIA_URL = (
   import.meta.env.VITE_MEDIA_URL ||
   (import.meta.env.DEV
     ? "http://127.0.0.1:8000/media"
-    : "");
+    : "")
+).replace(/\/+$/, "");
 
 function App() {
+  const [page, setPage] = useState("home");
   const [versions, setVersions] = useState([]);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [readerLocation, setReaderLocation] = useState(null);
-  const [showParallel, setShowParallel] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
-  const [showHome, setShowHome] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const availableVersions = versions.filter(
+    (version) => version.available,
+  );
 
   useEffect(() => {
     async function loadVersions() {
@@ -40,70 +43,126 @@ function App() {
     loadVersions();
   }, []);
 
+  function returnHome(event) {
+    event?.preventDefault();
 
-  function returnHome() {
+    setPage("home");
     setSelectedVersion(null);
-    setError("");
-    setShowParallel(false);
-    setShowAbout(true);
+    setReaderLocation(null);
+
+    window.history.replaceState(null, "", "#home");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-function openAbout(event) {
-  event.preventDefault();
+  function openAbout(event) {
+    event?.preventDefault();
 
-  setSelectedVersion(null);
-  setReaderLocation(null);
-  setShowSearch(false);
-  setShowParallel(false);
-  setShowAbout(true);
+    setPage("about");
+    setSelectedVersion(null);
+    setReaderLocation(null);
 
-  window.history.replaceState(null, "", "#about");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function openVersions(event) {
-  event.preventDefault();
-
-  setSelectedVersion(null);
-  setReaderLocation(null);
-  setShowSearch(false);
-  setShowParallel(false);
-  setShowAbout(false);
-
-  window.history.replaceState(null, "", "#versions");
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      document.getElementById("versions")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
-  });
-}
-
-    function openSearchResult(abbreviation, result) {
-  const version = versions.find(
-    (item) => item.abbreviation === abbreviation,
-  );
-
-  if (!version) {
-    return;
+    window.history.replaceState(null, "", "#about");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  setReaderLocation({
-    bookPosition: result.book.position,
-    chapter: result.chapter,
-    verse: result.verse,
-  });
+  function openVersions(event) {
+    event?.preventDefault();
 
-  setShowSearch(false);
-  setShowParallel(false);
-  setSelectedVersion(version);
+    setPage("versions");
+    setSelectedVersion(null);
+    setReaderLocation(null);
 
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
+    window.history.replaceState(null, "", "#versions");
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById("versions")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    });
+  }
+
+  function openVersion(version) {
+    setPage("reader");
+    setSelectedVersion(version);
+    setReaderLocation(null);
+
+    window.history.replaceState(null, "", "#reader");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openReader(event) {
+    event?.preventDefault();
+
+    const readerVersion =
+      availableVersions.find(
+        (version) => version.abbreviation === "KJV",
+      ) || availableVersions[0];
+
+    if (!readerVersion) {
+      return;
+    }
+
+    openVersion(readerVersion);
+  }
+
+  function openTamilBible() {
+    const tamilVersion = availableVersions.find(
+      (version) => version.abbreviation === "PPTB1856",
+    );
+
+    if (!tamilVersion) {
+      return;
+    }
+
+    openVersion(tamilVersion);
+  }
+
+  function openSearch(event) {
+    event?.preventDefault();
+
+    setPage("search");
+    setSelectedVersion(null);
+    setReaderLocation(null);
+
+    window.history.replaceState(null, "", "#search");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openParallel(event) {
+    event?.preventDefault();
+
+    setPage("parallel");
+    setSelectedVersion(null);
+    setReaderLocation(null);
+
+    window.history.replaceState(null, "", "#parallel");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openSearchResult(abbreviation, result) {
+    const version = versions.find(
+      (item) => item.abbreviation === abbreviation,
+    );
+
+    if (!version) {
+      return;
+    }
+
+    setReaderLocation({
+      bookPosition: result.book.position,
+      chapter: result.chapter,
+      verse: result.verse,
+    });
+
+    setSelectedVersion(version);
+    setPage("reader");
+
+    window.history.replaceState(null, "", "#reader");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   return (
     <div className="app">
@@ -114,191 +173,145 @@ function openVersions(event) {
         </div>
 
         <nav>
-           <a href="#home" onClick={returnHome}>
-    Home
-  </a>
-
-  <a href="#about" onClick={openAbout}>
-    About
-  </a>
-
-  <a href="#versions" onClick={openVersions}>
-    Versions
-
+          <a href="#home" onClick={returnHome}>
+            Home
           </a>
 
-          <a
-  href="#reader"
-  onClick={(event) => {
-    event.preventDefault();
+          <a href="#about" onClick={openAbout}>
+            About
+          </a>
 
-    const readerVersion =
-      versions.find(
-        (item) => item.abbreviation === "KJV" && item.available
-      ) || versions.find((item) => item.available);
+          <a href="#versions" onClick={openVersions}>
+            Versions
+          </a>
 
-    setShowSearch(false);
-    setShowParallel(false);
-    setShowAbout(false);
-    setReaderLocation(null);
-    setSelectedVersion(readerVersion || null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }}
->
-  Reader
-</a>
+          <a href="#reader" onClick={openReader}>
+            Reader
+          </a>
 
-         <a
-  href="#search"
-  onClick={(event) => {
-    event.preventDefault();
-    setSelectedVersion(null);
-    setReaderLocation(null);
-    setShowParallel(false);
-    setShowSearch(true);
-    setShowAbout(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }}
->
-  Search
-</a>
-          <a
-  href="#parallel"
-  onClick={(event) => {
-    event.preventDefault();
-    setSelectedVersion(null);
-    setReaderLocation(null);
-    setShowParallel(true);
-    setShowSearch(false);
-    setShowAbout(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }}
->
-  Parallel
-</a>
+          <a href="#search" onClick={openSearch}>
+            Search
+          </a>
+
+          <a href="#parallel" onClick={openParallel}>
+            Parallel
+          </a>
         </nav>
       </header>
 
       <main>
-  {showAbout ? (
-  <AboutPage onBack={returnHome} />
-) : showSearch ? (
-    <SearchPage
-      versions={versions.filter((item) => item.available)}
-      onOpenResult={openSearchResult}
-      onBack={returnHome}
-    />
-  ) : showParallel ? (
-    <ParallelReader
-      versions={versions.filter((item) => item.available)}
-      onBack={returnHome}
-    />
-  ) : selectedVersion ? (
-    <BibleReader
-      version={selectedVersion}
-      versions={versions.filter((item) => item.available)}
-      initialLocation={readerLocation}
-      onVersionChange={setSelectedVersion}
-      onBack={returnHome}
-    />
-  ) : (
-    <>
-            <section className="hero">
-              <p className="eyebrow">Bible study library</p>
+        {page === "home" ? (
+          <HomePage
+            versions={versions}
+            onBrowseVersions={openVersions}
+            onOpenTamil={openTamilBible}
+            onOpenAbout={openAbout}
+          />
+        ) : page === "about" ? (
+          <AboutPage onBack={returnHome} />
+        ) : page === "search" ? (
+          <SearchPage
+            versions={availableVersions}
+            onOpenResult={openSearchResult}
+            onBack={returnHome}
+          />
+        ) : page === "parallel" ? (
+          <ParallelReader
+            versions={availableVersions}
+            onBack={returnHome}
+          />
+        ) : page === "reader" && selectedVersion ? (
+          <BibleReader
+            version={selectedVersion}
+            versions={availableVersions}
+            initialLocation={readerLocation}
+            onVersionChange={(version) => {
+              setSelectedVersion(version);
+              setReaderLocation(null);
+            }}
+            onBack={returnHome}
+          />
+        ) : (
+          <section
+            className="versions-section"
+            id="versions"
+          >
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">
+                  Available translations
+                </p>
 
-              <h1>Read and compare Bible versions</h1>
+                <h2>Bible Versions</h2>
+              </div>
 
-              <p>
-                Explore Scripture across different translations
-                using our Python API and React reader.
+              {!loading && (
+                <span className="version-count">
+                  {versions.length} versions
+                </span>
+              )}
+            </div>
+
+            {loading && (
+              <p className="status">
+                Loading Bible versions…
               </p>
-            </section>
+            )}
 
-            <section
-              className="versions-section"
-              id="versions"
-            >
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">
-                    Available translations
+            {error && (
+              <p className="status error">{error}</p>
+            )}
+
+            <div className="version-grid">
+              {versions.map((version) => (
+                <article
+                  className="version-card"
+                  key={version.id}
+                >
+                  <div className="version-top">
+                    <span className="abbreviation">
+                      {version.abbreviation}
+                    </span>
+
+                    <span className="language">
+                      {version.language}
+                    </span>
+                  </div>
+
+                  <h3>{version.name}</h3>
+
+                  <p className="year">
+                    {version.year
+                      ? `Published ${version.year}`
+                      : "Year unknown"}
                   </p>
 
-                  <h2>Bible Versions</h2>
-                </div>
-
-                {!loading && (
-                  <span className="version-count">
-                    {versions.length} versions
-                  </span>
-                )}
-              </div>
-
-              {loading && (
-                <p className="status">
-                  Loading Bible versions…
-                </p>
-              )}
-
-              {error && (
-                <p className="status error">{error}</p>
-              )}
-
-              <div className="version-grid">
-                {versions.map((version) => (
-                  <article
-                    className="version-card"
-                    key={version.id}
+                  <button
+                    type="button"
+                    disabled={!version.available}
+                    onClick={() => openVersion(version)}
                   >
-                    <div className="version-top">
-                      <span className="abbreviation">
-                        {version.abbreviation}
-                      </span>
+                    {version.available
+                      ? "Open Bible"
+                      : "Text not imported"}
+                  </button>
 
-                      <span className="language">
-                        {version.language}
-                      </span>
-                    </div>
-
-                    <h3>{version.name}</h3>
-
-                    <p className="year">
-                      {version.year
-                        ? `Published ${version.year}`
-                        : "Year unknown"}
-                    </p>
-
-                    <button
-                      type="button"
-                      disabled={!version.available}
-                      onClick={() =>
-                        setSelectedVersion(version)
-                      }
+                  {MEDIA_URL && version.pdf_filename && (
+                    <a
+                      className="pdf-button"
+                      href={`${MEDIA_URL}/${encodeURIComponent(
+                        version.pdf_filename,
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      {version.available
-                        ? "Open Bible"
-                        : "Text not imported"}
-                    </button>
-
-                   {MEDIA_URL && version.pdf_filename && (
-
-  <a
-    className="pdf-button"
-    href={`${MEDIA_URL}/${encodeURIComponent(
-  version.pdf_filename
-)}`}
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    View PDF
-  </a>
-)}
-
-                  </article>
-                ))}
-              </div>
-            </section>
-          </>
+                      View PDF
+                    </a>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
         )}
       </main>
     </div>
