@@ -7,6 +7,27 @@ import {
   getParallel,
 } from "./services/bibleApi";
 
+const DEFAULT_PARALLEL_VERSIONS = [
+  "KJV",
+  "NIV",
+  "BSB",
+  "BBE",
+];
+
+function getDefaultVersions(versions) {
+  const available = versions.map(
+    (version) => version.abbreviation,
+  );
+
+  const [selectedAbbreviations, setSelectedAbbreviations] =
+    useState(() => getDefaultVersions(versions));
+
+  const remaining = available.filter(
+    (abbreviation) => !preferred.includes(abbreviation),
+  );
+
+  return [...preferred, ...remaining].slice(0, 4);
+}
 
 function ParallelReader({ versions, onBack }) {
   const [books, setBooks] = useState([]);
@@ -84,9 +105,7 @@ function scrollTable(direction) {
   setError("");
 
   try {
-    const abbreviations = versions.map(
-      (version) => version.abbreviation,
-    );
+    const abbreviations = selectedAbbreviations;
 
     const chaptersData = await getChapters(
       abbreviations[0],
@@ -121,9 +140,7 @@ function scrollTable(direction) {
     setError("");
 
     try {
-      const abbreviations = versions.map(
-        (version) => version.abbreviation,
-      );
+      const abbreviations = selectedAbbreviations;
 
       const data = await getParallel(
         selectedBook,
