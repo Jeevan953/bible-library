@@ -1412,3 +1412,94 @@ html {
     flex-direction: column;
   }
 }
+
+/* Tamil Bible Dictionary search results */
+
+.tamil-dictionary-result {
+  border-left-color: #d97706;
+  background:
+    linear-gradient(
+      135deg,
+      #fffdf7 0%,
+      #ffffff 100%
+    );
+}
+
+.tamil-dictionary-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.tamil-dictionary-title-row h3 {
+  margin: 0;
+  color: #92400e;
+  font-family:
+    "Noto Sans Tamil",
+    "Noto Serif Tamil",
+    system-ui,
+    sans-serif;
+  font-size: 1.45rem;
+  line-height: 1.5;
+}
+
+.tamil-dictionary-badge {
+  flex: 0 0 auto;
+  padding: 6px 11px;
+  border-radius: 999px;
+  color: #92400e;
+  background: #fef3c7;
+  font-family:
+    "Noto Sans Tamil",
+    system-ui,
+    sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.search-result .tamil-dictionary-definition {
+  color: #292524;
+  font-family:
+    "Noto Serif Tamil",
+    "Noto Sans Tamil",
+    Georgia,
+    serif;
+  font-size: 1.08rem;
+  font-weight: 600;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+
+.tamil-dictionary-attribution {
+  margin: 22px 0 0;
+  padding: 14px 18px;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  color: #57534e;
+  background: #fffbeb;
+  font-family: Inter, system-ui, sans-serif;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.tamil-dictionary-attribution a {
+  color: #b45309;
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .tamil-dictionary-title-row {
+    align-items: flex-start;
+  }
+
+  .tamil-dictionary-title-row h3 {
+    font-size: 1.25rem;
+  }
+
+  .tamil-dictionary-badge {
+    font-size: 0.7rem;
+  }
+}
+

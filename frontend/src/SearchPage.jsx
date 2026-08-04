@@ -90,9 +90,37 @@ function ProperNameResult({ result }) {
 }
 
 
+function TamilDictionaryResult({ result }) {
+  return (
+    <article
+      className={
+        "search-result tamil-dictionary-result"
+      }
+      lang="ta"
+    >
+      <div className="tamil-dictionary-title-row">
+        <h3>{result.word}</h3>
+
+        <span className="tamil-dictionary-badge">
+          தமிழ்
+        </span>
+      </div>
+
+      <p className="tamil-dictionary-definition">
+        {result.definition}
+      </p>
+    </article>
+  );
+}
+
+
 function getResultScope(searchData) {
   if (searchData.mode === "proper_names") {
     return "Proper Names";
+  }
+
+  if (searchData.mode === "tamil_dictionary") {
+    return "Tamil Bible Dictionary";
   }
 
   if (searchData.mode === "all_versions") {
@@ -130,6 +158,9 @@ function SearchPage({
   const properNamesMode =
     selectedVersion === "PROPER_NAMES";
 
+  const tamilDictionaryMode =
+    selectedVersion === "TAMIL_DICTIONARY";
+
 
   async function performSearch(page = 1) {
     const cleanQuery = query.trim();
@@ -138,7 +169,9 @@ function SearchPage({
       setError(
         properNamesMode
           ? "Enter a proper name to search."
-          : "Enter a word, phrase, or Bible reference.",
+          : tamilDictionaryMode
+            ? "Enter a Tamil word or definition to search."
+            : "Enter a word, phrase, or Bible reference.",
       );
       return;
     }
@@ -190,7 +223,9 @@ function SearchPage({
           <h1>
             {properNamesMode
               ? "Search Proper Names"
-              : "Search Scripture"}
+              : tamilDictionaryMode
+                ? "Search Tamil Bible Dictionary"
+                : "Search Scripture"}
           </h1>
         </header>
 
@@ -220,6 +255,10 @@ function SearchPage({
                 Proper Names
               </option>
 
+              <option value="TAMIL_DICTIONARY">
+                Tamil Bible Dictionary
+              </option>
+
               <optgroup label="Individual Versions">
                 {versions.map((version) => (
                   <option
@@ -237,7 +276,9 @@ function SearchPage({
           <label className="search-query-label">
             {properNamesMode
               ? "Name, Strong’s number, or description"
-              : "Word, phrase, or reference"}
+              : tamilDictionaryMode
+                ? "Tamil word or definition"
+                : "Word, phrase, or reference"}
 
             <input
               type="search"
@@ -245,7 +286,9 @@ function SearchPage({
               placeholder={
                 properNamesMode
                   ? "Example: Abraham or H0085"
-                  : "Example: faith, John 1, or John 1:1"
+                  : tamilDictionaryMode
+                    ? "உதாரணம்: தேவன், பவுல் அல்லது எருசலேம்"
+                    : "Example: faith, John 1, or John 1:1"
               }
               disabled={loading}
               onChange={(event) =>
@@ -288,7 +331,9 @@ function SearchPage({
             <p className="status">
               {searchData.mode === "proper_names"
                 ? "No matching proper names were found."
-                : "No matching verses were found."}
+                : searchData.mode === "tamil_dictionary"
+                  ? "பொருத்தமான அகராதிப் பதிவுகள் கிடைக்கவில்லை."
+                  : "No matching verses were found."}
             </p>
           ) : (
             <div className="result-list">
@@ -297,6 +342,12 @@ function SearchPage({
                 "proper_name" ? (
                   <ProperNameResult
                     key={`proper-name-${result.id}`}
+                    result={result}
+                  />
+                ) : result.result_type ===
+                  "tamil_dictionary" ? (
+                  <TamilDictionaryResult
+                    key={`tamil-dictionary-${result.id}`}
                     result={result}
                   />
                 ) : (
@@ -326,6 +377,31 @@ function SearchPage({
                 </a>
                 {" — "}
                 {searchData.attribution.license}
+              </p>
+            )}
+
+          {searchData.mode ===
+            "tamil_dictionary" &&
+            searchData.attribution && (
+              <p className="tamil-dictionary-attribution">
+                <strong>
+                  {searchData.attribution.name}
+                </strong>
+                {" — "}
+                created by{" "}
+                {searchData.attribution.creator};
+                published by{" "}
+                {searchData.attribution.publisher}.
+                {" "}
+                {searchData.attribution.license}.
+                {" "}
+                <a
+                  href={searchData.attribution.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Source
+                </a>
               </p>
             )}
 

@@ -97,6 +97,23 @@ class VerseText(models.Model):
     def __str__(self):
         return f"{self.bible_version.abbreviation} — {self.verse}"
 
+class TamilDictionaryEntry(models.Model):
+    word = models.CharField(
+        max_length=100,
+        unique=True,
+        db_index=True,
+    )
+    definition = models.TextField()
+
+    class Meta:
+        ordering = ["word"]
+        verbose_name = "Tamil dictionary entry"
+        verbose_name_plural = "Tamil dictionary entries"
+
+    def __str__(self):
+        return self.word
+
+
 class ProperName(models.Model):
     class Category(models.TextChoices):
         PERSON = "PERSON", "Person"

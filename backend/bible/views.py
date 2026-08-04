@@ -15,6 +15,7 @@ from .models import (
     Book,
     Chapter,
     ProperName,
+    TamilDictionaryEntry,
     Verse,
     VerseText,
 )
@@ -386,10 +387,76 @@ class BibleSearchAPIView(APIView):
                 page,
             )
 
+        if search_mode == "TAMIL_DICTIONARY":
+            return self.search_tamil_dictionary(
+                query,
+                page,
+            )
+
         return self.search_scripture(
             query,
             search_mode,
             page,
+        )
+
+    def search_tamil_dictionary(
+        self,
+        query,
+        page,
+    ):
+        matches = (
+            TamilDictionaryEntry.objects.filter(
+                Q(word__icontains=query)
+                | Q(definition__icontains=query)
+            )
+            .order_by("word")
+        )
+
+        total_results = matches.count()
+        total_pages = max(
+            1,
+            (
+                total_results + self.page_size - 1
+            ) // self.page_size,
+        )
+
+        start = (page - 1) * self.page_size
+        end = start + self.page_size
+
+        results = [
+            {
+                "result_type": "tamil_dictionary",
+                "id": entry.id,
+                "word": entry.word,
+                "definition": entry.definition,
+            }
+            for entry in matches[start:end]
+        ]
+
+        return Response(
+            {
+                "query": query,
+                "mode": "tamil_dictionary",
+                "search_type": "tamil_dictionary",
+                "version": None,
+                "count": total_results,
+                "page": page,
+                "total_pages": total_pages,
+                "results": results,
+                "attribution": {
+                    "name": "Tamil Bible Dictionary",
+                    "abbreviation": "TAMDIC",
+                    "creator": "Yesudas Solomon",
+                    "publisher": (
+                        "Word of God Ministries"
+                    ),
+                    "license": (
+                        "Free of Cost and "
+                        "Non-Profitable reasons only"
+                    ),
+                    "url": "http://www.WordOfGod.in",
+                },
+            }
         )
 
     def search_proper_names(self, query, page):
