@@ -43,3 +43,7 @@ Thumbs.db
 
 # Public Vite production URLs only—never put secrets here
 !frontend/.env.production
+
+# Generated PDF conversion files
+/backend/output/
+/backend/tmp/
