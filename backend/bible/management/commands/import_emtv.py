@@ -1,552 +1,426 @@
 import re
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from django.core.management.base import (
-    BaseCommand,
-    CommandError,
-)
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from bible.models import (
     BibleVersion,
     Book,
+    Chapter,
     Verse,
     VerseText,
 )
 
 
-VERSION_NAME = "English Majority Text Version"
-ABBREVIATION = "EMTV"
-LANGUAGE = "English"
-YEAR = 2014
-
-DEFAULT_SOURCE_DIR = Path(
-    "data/English Majority Text Version"
+BOOK_CODES = (
+    "GEN", "EXO", "LEV", "NUM", "DEU", "JOS", "JDG", "RUT",
+    "1SA", "2SA", "1KI", "2KI", "1CH", "2CH", "EZR", "NEH",
+    "EST", "JOB", "PSA", "PRO", "ECC", "SNG", "ISA", "JER",
+    "LAM", "EZK", "DAN", "HOS", "JOL", "AMO", "OBA", "JON",
+    "MIC", "NAM", "HAB", "ZEP", "HAG", "ZEC", "MAL", "MAT",
+    "MRK", "LUK", "JHN", "ACT", "ROM", "1CO", "2CO", "GAL",
+    "EPH", "PHP", "COL", "1TH", "2TH", "1TI", "2TI", "TIT",
+    "PHM", "HEB", "JAS", "1PE", "2PE", "1JN", "2JN", "3JN",
+    "JUD", "REV",
 )
 
-BOOK_CODES = """
-MAT MRK LUK JHN ACT ROM 1CO 2CO GAL EPH
-PHP COL 1TH 2TH 1TI 2TI TIT PHM HEB JAS
-1PE 2PE 1JN 2JN 3JN JUD REV
-""".split()
+NT_CODES = BOOK_CODES[39:]
 
-EXCLUDED_ELEMENTS = {
-    "note",
-    "ref",
-    "figure",
-    "sidebar",
-}
-
-MARKER_PATTERN = re.compile(
-    r"([1-3]?[A-Z]{2,3}) "
-    r"(\d+):(\d+)"
+FILE_PATTERN = re.compile(
+    r"^\d+-(?P<code>[A-Z0-9]+)engemtv\.usfm$",
+    re.IGNORECASE,
 )
 
-ROMANS_REMAP = {
-    ("ROM", 14, 24): ("ROM", 16, 25),
-    ("ROM", 14, 25): ("ROM", 16, 26),
-    ("ROM", 14, 26): ("ROM", 16, 27),
+CHAPTER_PATTERN = re.compile(
+    r"^\\c\s+(?P<number>\d+)\b"
+)
+
+VERSE_PATTERN = re.compile(
+    r"^\\v\s+(?P<number>\d+)(?:[a-z])?\s*(?P<text>.*)$"
+)
+
+IGNORE_LINE_MARKERS = {
+    "id", "ide", "h",
+    "toc1", "toc2", "toc3",
+    "mt", "mt1", "mt2", "mt3", "mt4",
+    "mte", "mte1", "mte2",
+    "s", "s1", "s2", "s3", "s4",
+    "ms", "ms1", "ms2", "mr",
+    "r", "d", "sp", "cl", "cp", "rem",
 }
 
-EXPECTED_MISSING_CODES = {
+
+# These positions are absent from the EMTV source.
+EXPECTED_MISSING = {
     ("LUK", 17, 36),
     ("ACT", 8, 37),
     ("ACT", 15, 34),
 }
 
-DESCRIPTION = (
-    "The New Testament, English Majority Text "
-    "Version (EMTV). Copyright © 2014 "
-    "Dr. Paul W. Esposito. Source: "
-    "https://eBible.org/find/show.php?id=engemtv. "
-    "Licensed under the Creative Commons "
-    "Attribution-NonCommercial-NoDerivatives "
-    "4.0 International License "
-    "(CC BY-NC-ND 4.0): "
-    "https://creativecommons.org/licenses/"
-    "by-nc-nd/4.0/. This translation may be "
-    "shared and redistributed with copyright "
-    "and source information, must not be sold "
-    "for profit, and its Scripture words and "
-    "punctuation must not be changed. This "
-    "database import preserves the Scripture "
-    "words and punctuation. Notes, headings, "
-    "cross-references, figures, sidebars, and "
-    "other non-verse material are excluded. "
-    "Reference mapping only: source Romans "
-    "14:24-26 is stored at canonical Romans "
-    "16:25-27, following the shared database "
-    "versification. EMTV omits Luke 17:36, "
-    "Acts 8:37, and Acts 15:34."
-)
 
+def clean_usfm(text):
+    # Remove complete footnotes and cross-references.
+    for marker in ("f", "fe", "x"):
+        text = re.sub(
+            rf"\\{marker}\b.*?\\{marker}\*",
+            "",
+            text,
+            flags=re.DOTALL,
+        )
 
-def local_name(tag):
-    return tag.rsplit("}", 1)[-1]
+    # Keep displayed words while removing Strong's attributes.
+    text = re.sub(
+        r"\\\+?w\s+([^|\\]*?)(?:\|[^\\]*?)?\\\+?w\*",
+        r"\1",
+        text,
+    )
 
+    # Remove any remaining USFM character markers but retain content.
+    text = re.sub(
+        r"\\[+A-Za-z0-9-]+\*?",
+        "",
+        text,
+    )
 
-def clean_text(text):
-    text = text.replace("\u00a0", " ")
+    text = text.replace("\\*", "")
+    text = text.replace("~", " ")
+
     return re.sub(r"\s+", " ", text).strip()
 
 
-def extract_usx(path):
-    try:
-        root = ET.parse(path).getroot()
-    except ET.ParseError as error:
-        raise CommandError(
-            f"Invalid XML in {path}: {error}"
-        ) from error
+def parse_usfm(path, code):
+    parsed = {}
+    chapters_seen = set()
 
-    fragments = {}
-    active = None
+    current_chapter = None
+    current_verse = None
+    fragments = []
 
-    def append(text):
-        if active is not None and text:
-            fragments.setdefault(
-                active,
-                [],
-            ).append(text)
+    def save_current_verse():
+        nonlocal fragments
 
-    def walk(element):
-        nonlocal active
-
-        name = local_name(element.tag)
-
-        if name in EXCLUDED_ELEMENTS:
+        if current_chapter is None or current_verse is None:
+            fragments = []
             return
 
-        if name == "verse":
-            sid = element.get("sid")
-            eid = element.get("eid")
+        text = clean_usfm(" ".join(fragments))
 
-            if sid:
-                match = MARKER_PATTERN.fullmatch(
-                    sid.strip()
-                )
-
-                if not match:
-                    raise CommandError(
-                        "Invalid verse marker "
-                        f"{sid!r} in {path}"
-                    )
-
-                code, chapter, verse = (
-                    match.groups()
-                )
-
-                active = (
-                    code,
-                    int(chapter),
-                    int(verse),
-                )
-
-                if active in fragments:
-                    raise CommandError(
-                        "Duplicate verse marker "
-                        f"{sid!r} in {path}"
-                    )
-
-                fragments[active] = []
-
-            elif eid:
-                active = None
-
-            return
-
-        append(element.text)
-
-        for child in element:
-            walk(child)
-            append(child.tail)
-
-    walk(root)
-
-    return {
-        key: clean_text("".join(parts))
-        for key, parts in fragments.items()
-    }
-
-
-def load_source_texts(source_dir):
-    release_dir = source_dir / "release"
-    metadata_path = source_dir / "metadata.xml"
-    license_path = source_dir / "license.xml"
-
-    required = [
-        release_dir,
-        metadata_path,
-        license_path,
-    ]
-
-    missing = [
-        str(path)
-        for path in required
-        if not path.exists()
-    ]
-
-    if missing:
-        raise CommandError(
-            "Missing required source paths: "
-            + ", ".join(missing)
-        )
-
-    metadata = metadata_path.read_text(
-        encoding="utf-8"
-    )
-
-    license_text = license_path.read_text(
-        encoding="utf-8"
-    )
-
-    required_metadata = [
-        "English Majority Text Version",
-        "<abbreviation>engEMTV</abbreviation>",
-        "<iso>eng</iso>",
-        "© 2014 Dr. Paul W. Esposito",
-    ]
-
-    for expected in required_metadata:
-        if expected not in metadata:
+        if not text:
             raise CommandError(
-                "Expected metadata text was not "
-                f"found: {expected!r}"
+                f"{path.name}: empty text at "
+                f"{code} {current_chapter}:{current_verse}"
             )
 
-    if 'id="55ec700d9e0d77ea"' not in (
-        license_text
-    ):
-        raise CommandError(
-            "Unexpected EMTV license identifier"
-        )
+        key = (code, current_chapter, current_verse)
 
-    usx_paths = sorted(
-        release_dir.rglob("*.usx")
-    )
-
-    if len(usx_paths) != 27:
-        raise CommandError(
-            "Expected 27 USX files, found "
-            f"{len(usx_paths)}"
-        )
-
-    raw_texts = {}
-
-    for usx_path in usx_paths:
-        extracted = extract_usx(usx_path)
-        overlap = set(raw_texts) & set(extracted)
-
-        if overlap:
+        if key in parsed:
             raise CommandError(
-                "Duplicate source markers across "
-                f"USX files: {sorted(overlap)[:10]}"
+                f"{path.name}: duplicate verse "
+                f"{code} {current_chapter}:{current_verse}"
             )
 
-        raw_texts.update(extracted)
+        parsed[key] = text
+        fragments = []
 
-    if len(raw_texts) != 7954:
-        raise CommandError(
-            "Expected 7,954 source texts, found "
-            f"{len(raw_texts):,}"
+    for raw_line in path.read_text(
+        encoding="utf-8-sig"
+    ).splitlines():
+        line = raw_line.strip()
+
+        if not line:
+            continue
+
+        chapter_match = CHAPTER_PATTERN.match(line)
+
+        if chapter_match:
+            save_current_verse()
+
+            current_chapter = int(
+                chapter_match.group("number")
+            )
+            current_verse = None
+            chapters_seen.add(current_chapter)
+            continue
+
+        verse_match = VERSE_PATTERN.match(line)
+
+        if verse_match:
+            save_current_verse()
+
+            if current_chapter is None:
+                raise CommandError(
+                    f"{path.name}: verse found before chapter"
+                )
+
+            current_verse = int(
+                verse_match.group("number")
+            )
+            fragments = [verse_match.group("text")]
+            continue
+
+        if current_verse is None:
+            continue
+
+        marker_match = re.match(
+            r"^\\(?P<marker>[+A-Za-z0-9-]+)\b",
+            line,
         )
 
-    return raw_texts
+        if marker_match:
+            marker = marker_match.group("marker").lstrip("+")
+
+            if marker in IGNORE_LINE_MARKERS:
+                continue
+
+        # Preserve poetry and multiline verse continuations.
+        fragments.append(line)
+
+    save_current_verse()
+
+    return parsed, chapters_seen
 
 
-def normalize_positions(
-    raw_texts,
-    code_to_position,
-):
+def normalize_versification(source):
     normalized = {}
 
-    for source_reference, text in (
-        raw_texts.items()
-    ):
-        if not text:
-            code, chapter, verse = (
-                source_reference
-            )
+    for (code, chapter, number), text in source.items():
+        # EMTV places the Romans doxology after chapter 14.
+        if code == "ROM" and chapter == 14 and 24 <= number <= 26:
+            target = ("ROM", 16, number + 1)
+        else:
+            target = (code, chapter, number)
+
+        if target in normalized:
             raise CommandError(
-                "Blank source text at "
-                f"{code} {chapter}:{verse}"
+                f"Multiple source verses map to {target}"
             )
 
-        target_reference = ROMANS_REMAP.get(
-            source_reference,
-            source_reference,
-        )
-
-        code, chapter, verse = target_reference
-
-        if code not in code_to_position:
-            raise CommandError(
-                f"Unsupported book code: {code}"
-            )
-
-        position = (
-            code_to_position[code],
-            chapter,
-            verse,
-        )
-
-        if position in normalized:
-            raise CommandError(
-                "Duplicate normalized position: "
-                f"{position}"
-            )
-
-        normalized[position] = text
+        normalized[target] = text
 
     return normalized
 
-
 class Command(BaseCommand):
-    help = (
-        "Import the English Majority Text "
-        "Version New Testament from its "
-        "DBL USX release bundle."
-    )
+    help = "Import the English Majority Text Version from USFM."
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "source_dir",
-            nargs="?",
-            type=Path,
-            default=DEFAULT_SOURCE_DIR,
-        )
+        parser.add_argument("folder", type=str)
 
     def handle(self, *args, **options):
-        source_dir = options["source_dir"]
+        folder = Path(options["folder"])
 
-        if not source_dir.is_dir():
+        if not folder.is_dir():
+            raise CommandError(f"Folder not found: {folder}")
+
+        pdf_path = folder.parent / "emtv.pdf"
+
+        if not pdf_path.is_file():
+            raise CommandError(f"PDF not found: {pdf_path}")
+
+        canonical_codes = set(NT_CODES)
+        paths = {}
+
+        for path in folder.glob("*.usfm"):
+            match = FILE_PATTERN.match(path.name)
+
+            if not match:
+                continue
+
+            code = match.group("code").upper()
+
+            # Ignore front matter and introduction files.
+            if code not in canonical_codes:
+                continue
+
+            if code in paths:
+                raise CommandError(
+                    f"Duplicate USFM file for {code}"
+                )
+
+            paths[code] = path
+
+        missing_files = [
+            code for code in NT_CODES if code not in paths
+        ]
+
+        if missing_files:
             raise CommandError(
-                "Source directory not found: "
-                f"{source_dir}"
+                "Missing canonical files: "
+                + ", ".join(missing_files)
             )
 
-        books = list(
-            Book.objects.filter(
-                position__gte=40,
-                position__lte=66,
-            ).order_by(
-                "position"
-            ).values_list(
-                "position",
-                "name",
-            )
-        )
+        source = {}
+        source_chapters = set()
 
-        if len(books) != 27:
+        for code in NT_CODES:
+            parsed, chapters = parse_usfm(paths[code], code)
+            source.update(parsed)
+
+            source_chapters.update(
+                (code, chapter) for chapter in chapters
+            )
+
+        if len(source_chapters) != 260:
             raise CommandError(
-                "Expected 27 canonical NT books, "
-                f"found {len(books)}"
+                "Expected 260 chapters, found "
+                f"{len(source_chapters)}"
             )
 
-        if len(BOOK_CODES) != 27:
+        if len(source) != 7954:
             raise CommandError(
-                "Internal NT book-code mapping "
-                "is not complete"
+                "Expected 7954 source texts, found "
+                f"{len(source)}"
             )
 
-        code_to_position = {
-            code: position
-            for code, (
-                position,
-                book_name,
-            ) in zip(
-                BOOK_CODES,
-                books,
-            )
-        }
-
-        raw_texts = load_source_texts(
-            source_dir
-        )
-
-        normalized = normalize_positions(
-            raw_texts,
-            code_to_position,
-        )
-
-        canonical_verses = {
-            (
-                verse.chapter.book.position,
-                verse.chapter.number,
-                verse.number,
-            ): verse
-            for verse in Verse.objects.filter(
-                chapter__book__position__gte=40,
-                chapter__book__position__lte=66,
-            ).select_related(
-                "chapter__book"
-            )
-        }
-
-        expected_missing = {
-            (
-                code_to_position[code],
-                chapter,
-                verse,
-            )
-            for code, chapter, verse
-            in EXPECTED_MISSING_CODES
-        }
-
-        canonical_positions = set(
-            canonical_verses
-        )
-        source_positions = set(normalized)
-
-        missing = (
-            canonical_positions
-            - source_positions
-        )
-        extra = (
-            source_positions
-            - canonical_positions
-        )
-
-        if missing != expected_missing:
-            raise CommandError(
-                "Unexpected missing positions. "
-                f"Expected: "
-                f"{sorted(expected_missing)}; "
-                f"found: {sorted(missing)}"
-            )
-
-        if extra:
-            raise CommandError(
-                "Unexpected extra positions: "
-                f"{sorted(extra)}"
-            )
+        normalized = normalize_versification(source)
 
         if len(normalized) != 7954:
             raise CommandError(
-                "Expected 7,954 normalized verse "
-                f"texts, found {len(normalized):,}"
+                "Expected 7954 normalized texts, found "
+                f"{len(normalized)}"
             )
 
-        forbidden_phrases = [
-            "Copyright Information",
-            "permission must be obtained",
-            "DBLMetadata",
-            "publicationRights",
-            "English Majority Text Version",
-            "Copyright ©",
-        ]
+        canonical_verses = {}
+        canonical_chapters = set()
 
-        for position, text in normalized.items():
-            if not text:
+        for position, code in enumerate(NT_CODES, start=40):
+            try:
+                book = Book.objects.get(position=position)
+            except Book.DoesNotExist as error:
                 raise CommandError(
-                    f"Blank text at {position}"
+                    f"Canonical book position {position} not found"
+                ) from error
+
+            chapters = Chapter.objects.filter(
+                book=book
+            ).order_by("number")
+
+            for chapter in chapters:
+                canonical_chapters.add(
+                    (code, chapter.number)
                 )
 
-            if "\ufffd" in text:
-                raise CommandError(
-                    "Replacement character found "
-                    f"at {position}"
-                )
+                verses = Verse.objects.filter(
+                    chapter=chapter
+                ).order_by("number")
 
-            if re.search(r"<[^>]+>", text):
-                raise CommandError(
-                    "HTML/XML marker found at "
-                    f"{position}"
-                )
-
-            for phrase in forbidden_phrases:
-                if phrase in text:
-                    raise CommandError(
-                        "Metadata contamination "
-                        f"{phrase!r} at {position}"
+                for verse in verses:
+                    key = (
+                        code,
+                        chapter.number,
+                        verse.number,
                     )
+                    canonical_verses[key] = verse
+
+        chapter_errors = (
+            source_chapters.symmetric_difference(
+                canonical_chapters
+            )
+        )
+
+        if chapter_errors:
+            examples = sorted(chapter_errors)[:20]
+            raise CommandError(
+                f"Chapter validation failed: {examples}"
+            )
+
+        unexpected = (
+            set(normalized) - set(canonical_verses)
+        )
+        actual_missing = (
+            set(canonical_verses) - set(normalized)
+        )
+        unexpected_missing = (
+            actual_missing - EXPECTED_MISSING
+        )
+        unexpectedly_present = (
+            EXPECTED_MISSING - actual_missing
+        )
+
+        if (
+            unexpected
+            or unexpected_missing
+            or unexpectedly_present
+        ):
+            messages = []
+
+            if unexpected:
+                messages.append(
+                    f"Unexpected verses: {sorted(unexpected)[:20]}"
+                )
+
+            if unexpected_missing:
+                messages.append(
+                    "Unexpected missing verses: "
+                    f"{sorted(unexpected_missing)[:20]}"
+                )
+
+            if unexpectedly_present:
+                messages.append(
+                    "Expected omissions contain text: "
+                    f"{sorted(unexpectedly_present)[:20]}"
+                )
+
+            raise CommandError("\n".join(messages))
 
         with transaction.atomic():
-            version, created = (
-                BibleVersion.objects.update_or_create(
-                    abbreviation=ABBREVIATION,
-                    defaults={
-                        "name": VERSION_NAME,
-                        "language": LANGUAGE,
-                        "year": YEAR,
-                        "description": DESCRIPTION,
-                        "pdf_filename": "emtv.pdf",
-                    },
-                )
+            version, created = BibleVersion.objects.get_or_create(
+                abbreviation="EMTV",
+                defaults={
+                    "name": "English Majority Text Version",
+                    "language": "English",
+                    "year": 1901,
+                },
             )
+
+            version.name = "English Majority Text Version"
+            version.language = "English"
+            version.year = 2014
+            version.description = (
+                "English Majority Text Version New Testament, "
+                "translated by Dr. Paul W. Esposito. "
+                "Copyright © 2014 Dr. Paul W. Esposito; "
+                "CC BY-NC-ND 4.0."
+            )
+            version.pdf_filename = "emtv.pdf"
+            version.save()
 
             VerseText.objects.filter(
                 bible_version=version
             ).delete()
 
+            verse_texts = [
+                VerseText(
+                    bible_version=version,
+                    verse=canonical_verses[key],
+                    text=text,
+                )
+                for key, text in normalized.items()
+            ]
+
             VerseText.objects.bulk_create(
-                [
-                    VerseText(
-                        bible_version=version,
-                        verse=canonical_verses[
-                            position
-                        ],
-                        text=text,
-                    )
-                    for position, text in sorted(
-                        normalized.items()
-                    )
-                ],
-                batch_size=1000,
+                verse_texts,
+                batch_size=2000,
             )
 
-        action = (
-            "Created"
-            if created
-            else "Updated"
-        )
+        action = "Created" if created else "Updated"
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"{action}: {VERSION_NAME} "
-                f"({ABBREVIATION})"
+                f"{action}: {version.name} "
+                f"({version.abbreviation})"
             )
         )
+        self.stdout.write("Books: 27")
         self.stdout.write(
-            f"Language: {LANGUAGE}"
+            f"Chapters: {len(source_chapters)}"
         )
         self.stdout.write(
-            f"Year: {YEAR}"
+            f"Source verses: {len(source)}"
         )
         self.stdout.write(
-            "Books: 27"
+            f"Imported verses: {len(verse_texts)}"
         )
         self.stdout.write(
-            "Chapters: 260"
-        )
-        self.stdout.write(
-            "Canonical NT positions: "
-            f"{len(canonical_positions)}"
-        )
-        self.stdout.write(
-            "Imported verse texts: "
-            f"{len(normalized)}"
-        )
-        self.stdout.write(
-            "Intentional/source missing "
-            f"positions: {len(missing)}"
-        )
-        self.stdout.write(
-            "Reference mapping: source Romans "
-            "14:24-26 -> canonical Romans "
-            "16:25-27"
-        )
-        self.stdout.write(
-            "Scripture words and punctuation: "
-            "unchanged"
-        )
-        self.stdout.write(
-            "License: CC BY-NC-ND 4.0"
-        )
-        self.stdout.write(
-            "Copyright: Copyright © 2014 "
-            "Dr. Paul W. Esposito"
-        )
-        self.stdout.write(
-            "PDF: emtv.pdf"
+            f"Missing verse positions: {len(EXPECTED_MISSING)}"
         )
