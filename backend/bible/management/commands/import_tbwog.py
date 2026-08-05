@@ -325,7 +325,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "source",
             nargs="?",
-            default="data/bsi.mybible",
+            default="data/TBWOG.mybible",
             help=(
                 "Path to the Word of God "
                 "Ministries MyBible module."
