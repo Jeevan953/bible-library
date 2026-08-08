@@ -47,3 +47,22 @@ Thumbs.db
 # Generated PDF conversion files
 /backend/output/
 /backend/tmp/
+
+# Large data files (ignore these)
+*.json
+*.sqlite3
+*.db
+*.sql
+*.csv
+*.tsv
+*.xml
+*.pdf
+*.spb
+*.mybible
+*.dct
+full_data.json
+bible_data.json
+complete_data.json
+data.json
+db.sqlite3
+
