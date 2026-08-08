@@ -1,6 +1,7 @@
 #!/bin/bash
 
 echo "🚀 Building Bible Library API..."
+echo "Python version: $(python --version)"
 
 # Install dependencies
 pip install -r requirements.txt
