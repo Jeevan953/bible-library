@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Django
+*.log
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/static/
+/media/
+
+# Database files (LARGE)
+*.sqlite3
+*.db
+*.sql
+*.csv
+*.tsv
+
+# Data files (LARGE - don't commit)
+*.json
+*.xml
+*.pdf
+*.spb
+*.mybible
+*.dct
+data/
+output/
+*.djvu
+*.html
+*.txt
+
+# Large backup files
+full_data.json
+bible_data.json
+complete_data.json
+data.json
+backup*.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Render
+render.yaml
+build.sh
+Procfile
