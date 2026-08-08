@@ -1,68 +1,69 @@
-# Python virtual environment
-.venv/
-venv/
-
-# Python generated files
-**/__pycache__/
+# Python
+__pycache__/
 *.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Django database and runtime files
-*.sqlite3
-*.sqlite3-*
-backend/data/
-backend/media/
-backend/staticfiles/
+# Django
 *.log
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/static/
+/media/
 
-# Environment variables and secrets
-.env
-.env.*
-!.env.example
-
-# React / Node generated files
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Test and coverage output
-.coverage
-htmlcov/
-coverage/
-
-# Editors and operating systems
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Public Vite production URLs only—never put secrets here
-!frontend/.env.production
-
-# Generated PDF conversion files
-/backend/output/
-/backend/tmp/
-
-# Large data files (ignore these)
-*.json
+# Database files (LARGE)
 *.sqlite3
 *.db
 *.sql
 *.csv
 *.tsv
+
+# Data files (LARGE - don't commit)
+*.json
 *.xml
 *.pdf
 *.spb
 *.mybible
 *.dct
+data/
+output/
+*.djvu
+*.html
+*.txt
+
+# Large backup files
 full_data.json
 bible_data.json
 complete_data.json
 data.json
-db.sqlite3
+backup*.json
 
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Render
+render.yaml
+build.sh
+Procfile
