@@ -44,6 +44,8 @@ def get_public_version_or_404(abbreviation):
 
 
 class BibleVersionListAPIView(ListAPIView):
+    # React expects /api/versions/ to return a plain JSON array.
+    pagination_class = None
     queryset = BibleVersion.objects.order_by("name")
     serializer_class = BibleVersionSerializer
 
