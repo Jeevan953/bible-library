@@ -1,9 +1,4 @@
-from django.contrib import admin
-from django.conf import settings
-from django.conf.urls.static import static
-
-
-from django.urls import path, include
+from django.urls import path
 
 from .views import (
     BibleSearchAPIView,
@@ -24,8 +19,8 @@ urlpatterns = [
     ),
     path(
         "search/",
-         BibleSearchAPIView.as_view(),
-         name="bible-search",
+        BibleSearchAPIView.as_view(),
+        name="bible-search",
     ),
     path(
         "versions/<str:abbreviation>/books/",
@@ -33,26 +28,21 @@ urlpatterns = [
         name="version-book-list",
     ),
     path(
-        "versions/<str:abbreviation>/books/<int:book_position>/chapters/",
+        "versions/<str:abbreviation>/books/"
+        "<int:book_position>/chapters/",
         BibleVersionChapterListAPIView.as_view(),
         name="version-chapter-list",
     ),
     path(
-        "read/<str:abbreviation>/<int:book_position>/<int:chapter_number>/",
+        "read/<str:abbreviation>/"
+        "<int:book_position>/<int:chapter_number>/",
         ChapterReaderAPIView.as_view(),
         name="chapter-reader",
     ),
     path(
-        "parallel/<int:book_position>/<int:chapter_number>/",
-         ParallelChapterAPIView.as_view(),
-         name="parallel-chapter",
+        "parallel/<int:book_position>/"
+        "<int:chapter_number>/",
+        ParallelChapterAPIView.as_view(),
+        name="parallel-chapter",
     ),
-    path("admin/", admin.site.urls),
-    path("api/", include("bible.api.urls")),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(
-        settings.MEDIA_URL,
-        document_root=settings.MEDIA_ROOT,
-    )

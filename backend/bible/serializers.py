@@ -2,19 +2,14 @@ from rest_framework import serializers
 
 from .models import BibleVersion, Book
 
-from bible.models import BibleVersion, VerseText
-from rest_framework import serializers
 
-class BibleVersionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = BibleVersion
-        fields = ['id', 'abbreviation', 'name', 'language', 'year', 'description']
-    
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        # Add verse count
-        data['verse_count'] = VerseText.objects.filter(bible_version=instance).count()
-        return data
+# These translations must remain inaccessible until written
+# permission and implementation guidance are received.
+PUBLICLY_DISABLED_ABBREVIATIONS = frozenset({
+    "AFV",
+    "ESV",
+    "NASB",
+})
 
 
 class BibleVersionSerializer(serializers.ModelSerializer):
@@ -34,7 +29,11 @@ class BibleVersionSerializer(serializers.ModelSerializer):
         ]
 
     def get_available(self, obj):
-        return obj.verse_texts.exists()
+        return (
+            obj.abbreviation.upper()
+            not in PUBLICLY_DISABLED_ABBREVIATIONS
+            and obj.verse_texts.exists()
+        )
 
 
 class BookSerializer(serializers.ModelSerializer):

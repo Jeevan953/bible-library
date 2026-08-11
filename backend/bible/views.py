@@ -19,7 +19,28 @@ from .models import (
     Verse,
     VerseText,
 )
-from .serializers import BibleVersionSerializer, BookSerializer
+from .serializers import (
+    PUBLICLY_DISABLED_ABBREVIATIONS,
+    BibleVersionSerializer,
+    BookSerializer,
+)
+
+
+def get_public_version_or_404(abbreviation):
+    version = get_object_or_404(
+        BibleVersion,
+        abbreviation__iexact=abbreviation,
+    )
+
+    if (
+        version.abbreviation.upper()
+        in PUBLICLY_DISABLED_ABBREVIATIONS
+    ):
+        raise NotFound(
+            f"{version.abbreviation} is not publicly available."
+        )
+
+    return version
 
 
 class BibleVersionListAPIView(ListAPIView):
@@ -29,9 +50,8 @@ class BibleVersionListAPIView(ListAPIView):
 
 class BibleVersionBookListAPIView(APIView):
     def get(self, request, abbreviation):
-        version = get_object_or_404(
-            BibleVersion,
-            abbreviation__iexact=abbreviation,
+        version = get_public_version_or_404(
+            abbreviation
         )
 
         books = (
@@ -52,9 +72,8 @@ class BibleVersionBookListAPIView(APIView):
 
 class BibleVersionChapterListAPIView(APIView):
     def get(self, request, abbreviation, book_position):
-        version = get_object_or_404(
-            BibleVersion,
-            abbreviation__iexact=abbreviation,
+        version = get_public_version_or_404(
+            abbreviation
         )
 
         book = get_object_or_404(
@@ -89,9 +108,8 @@ class ChapterReaderAPIView(APIView):
         book_position,
         chapter_number,
     ):
-        version = get_object_or_404(
-            BibleVersion,
-            abbreviation__iexact=abbreviation,
+        version = get_public_version_or_404(
+            abbreviation
         )
 
         book = get_object_or_404(
@@ -169,6 +187,19 @@ class ParallelChapterAPIView(APIView):
                 )
             )
 
+            restricted = [
+                abbreviation
+                for abbreviation in abbreviations
+                if abbreviation
+                in PUBLICLY_DISABLED_ABBREVIATIONS
+            ]
+
+            if restricted:
+                raise NotFound(
+                    "Versions are not publicly available: "
+                    f"{', '.join(restricted)}"
+                )
+
             version_lookup = {
                 version.abbreviation: version
                 for version in BibleVersion.objects.filter(
@@ -195,6 +226,11 @@ class ParallelChapterAPIView(APIView):
             versions = list(
                 BibleVersion.objects.filter(
                     verse_texts__isnull=False
+                )
+                .exclude(
+                    abbreviation__in=(
+                        PUBLICLY_DISABLED_ABBREVIATIONS
+                    )
                 )
                 .distinct()
                 .order_by("name")
@@ -549,14 +585,17 @@ class BibleSearchAPIView(APIView):
         if all_versions:
             version = None
         else:
-            version = get_object_or_404(
-                BibleVersion,
-                abbreviation__iexact=search_mode,
+            version = get_public_version_or_404(
+                search_mode
             )
 
         reference = parse_scripture_reference(query)
 
-        matches = VerseText.objects.all()
+        matches = VerseText.objects.exclude(
+            bible_version__abbreviation__in=(
+                PUBLICLY_DISABLED_ABBREVIATIONS
+            )
+        )
 
         if version is not None:
             matches = matches.filter(

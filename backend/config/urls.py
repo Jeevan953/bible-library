@@ -36,7 +36,7 @@ def version_list(request):
 # Main urlpatterns
 urlpatterns = [
     path('', home, name='home'),
-    path('api/versions/', version_list, name='version-list'),
+    path("api/", include("bible.urls")),
     path("admin/", admin.site.urls),
 ]
 
