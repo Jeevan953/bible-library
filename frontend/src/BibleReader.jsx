@@ -297,6 +297,19 @@ async function nextChapter() {
             </h1>
           </header>
 
+          {version.description && (
+            <details
+              className="version-notice reader-version-notice"
+              open={version.abbreviation === "OTCV"}
+            >
+              <summary>
+                Copyright, source &amp; license
+              </summary>
+
+              <p>{version.description}</p>
+            </details>
+          )}
+
           <div className="verse-list">
             {chapterData.verses.map((verse) => (
               <p

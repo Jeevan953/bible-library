@@ -67,3 +67,7 @@ Thumbs.db
 render.yaml
 build.sh
 Procfile
+
+# Keep frontend build manifests tracked
+!frontend/package.json
+!frontend/package-lock.json

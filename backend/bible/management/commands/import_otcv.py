@@ -1,590 +1,577 @@
+import hashlib
 import re
-import xml.etree.ElementTree as ET
+from collections import Counter
 from pathlib import Path
 
-from django.core.management.base import (
-    BaseCommand,
-    CommandError,
-)
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from bible.models import (
-    BibleVersion,
-    Book,
-    Verse,
-    VerseText,
+from bible.models import BibleVersion, Verse, VerseText
+
+
+BOOK_CODES = (
+    "GEN", "EXO", "LEV", "NUM", "DEU", "JOS", "JDG", "RUT",
+    "1SA", "2SA", "1KI", "2KI", "1CH", "2CH", "EZR", "NEH",
+    "EST", "JOB", "PSA", "PRO", "ECC", "SNG", "ISA", "JER",
+    "LAM", "EZK", "DAN", "HOS", "JOL", "AMO", "OBA", "JON",
+    "MIC", "NAM", "HAB", "ZEP", "HAG", "ZEC", "MAL",
+    "MAT", "MRK", "LUK", "JHN", "ACT", "ROM", "1CO", "2CO",
+    "GAL", "EPH", "PHP", "COL", "1TH", "2TH", "1TI", "2TI",
+    "TIT", "PHM", "HEB", "JAS", "1PE", "2PE", "1JN", "2JN",
+    "3JN", "JUD", "REV",
 )
 
-
-VERSION_NAME = (
-    "Open Indian Tamil Contemporary Version"
-)
-ABBREVIATION = "OTCV"
-LANGUAGE = "Tamil"
-YEAR = 2022
-
-DEFAULT_SOURCE_DIR = Path(
-    "data/Open Indian Tamil Contemporary Version"
-)
-
-BOOK_CODES = """
-GEN EXO LEV NUM DEU JOS JDG RUT 1SA 2SA
-1KI 2KI 1CH 2CH EZR NEH EST JOB PSA PRO
-ECC SNG ISA JER LAM EZK DAN HOS JOL AMO
-OBA JON MIC NAM HAB ZEP HAG ZEC MAL MAT
-MRK LUK JHN ACT ROM 1CO 2CO GAL EPH PHP
-COL 1TH 2TH 1TI 2TI TIT PHM HEB JAS 1PE
-2PE 1JN 2JN 3JN JUD REV
-""".split()
-
-EXCLUDED_ELEMENTS = {
-    "note",
-    "ref",
-    "figure",
-    "sidebar",
+BOOK_POSITIONS = {
+    code: position
+    for position, code in enumerate(BOOK_CODES, start=1)
+}
+POSITION_CODES = {
+    position: code
+    for code, position in BOOK_POSITIONS.items()
 }
 
-MARKER_PATTERN = re.compile(
-    r"([1-3]?[A-Z]{2,3}) "
-    r"(\d+):([0-9]+(?:-[0-9]+)?)"
+TEXT_MARKERS = {
+    "p", "q1", "q2", "q3", "qm1", "qm2", "qr", "qc",
+    "li1", "li2", "li3", "li4",
+    "pm", "pmc", "pmo", "m", "mi", "pi1", "pc", "pr",
+    "nb", "b",
+}
+
+IGNORED_MARKERS = {
+    "id", "h", "toc1", "toc2", "toc3", "mt", "mt1", "mt2",
+    "c", "cl", "s1", "s2", "ms", "ms1", "mr", "d", "sp", "qa",
+}
+
+INLINE_MARKERS = {"sc", "tl"}
+
+EXPECTED_SOURCE_RECORDS = 31102
+EXPECTED_CHAPTERS = 1189
+EXPECTED_CANONICAL_TEXTS = 31102
+EXPECTED_TOTAL_FOOTNOTES = 897
+EXPECTED_VERSE_FOOTNOTES = 893
+EXPECTED_OUTSIDE_FOOTNOTES = 4
+EXPECTED_CANONICAL_SHA256 = (
+    "b34bd8ece2841372704bbe5bb6898c058f797501ba10313552c2debc57352726"
 )
 
-PSALM_BOUNDARY = (
-    "யெகோவாவினுடைய சட்டத்திலே"
-)
-
-PSALM_ONE_ENDING = (
-    "பரிகாசக்காரருடன் உட்காராமல்,"
-)
-
-DESCRIPTION = (
-    "Open Indian Tamil Contemporary Version "
-    "(OTCV), completed in 2022. Original work "
-    "copyright © 2005, 2020, 2022 by Biblica, "
-    "Inc. The original work by Biblica, Inc. is "
-    "available for free at https://www.biblica.com "
-    "and https://open.bible. Licensed under the "
-    "Creative Commons Attribution-ShareAlike 4.0 "
-    "International License (CC BY-SA 4.0): "
-    "https://creativecommons.org/licenses/by-sa/4.0/. "
-    "This database presentation is made available "
-    "under the same license. Introductions, "
-    "footnotes, cross-references, figures, and "
-    "sidebars are excluded from verse text. "
-    "Versification was normalized for this "
-    "application: bridged Psalms 1:1-2 was split "
-    "at its poetic and semantic boundary, and "
-    "source 3 John 1:15 was combined with canonical "
-    "3 John 1:14."
+VERSION_NAME = "Open Indian Tamil Contemporary Version"
+VERSION_ABBREVIATION = "OTCV"
+VERSION_LANGUAGE = "Tamil"
+VERSION_YEAR = 2022
+VERSION_DESCRIPTION = (
+    "Adapted database representation of the Open Indian Tamil Contemporary "
+    "Version. Original-work notice: Biblica® திறந்தநிலை தமிழ் சமகால "
+    "பதிப்பு™ — பதிப்புரிமை © 2005, 2020, 2022 Biblica, Inc. "
+    "Biblica® Open Indian Tamil Contemporary Version™ — Copyright © 2005, "
+    "2020, 2022 by Biblica, Inc. ‘Biblica’ is a trademark registered in the "
+    "United States Patent and Trademark Office by Biblica, Inc. Used with "
+    "permission. The original work by Biblica, Inc. is available for free "
+    "at https://www.biblica.com and https://open.bible. Changes in this "
+    "adaptation: USFM layout, section headings, Psalm superscriptions, and "
+    "footnotes are omitted; Psalm 1:1-2 is split into canonical verses 1 "
+    "and 2; and 3 John 1:15 is merged into canonical verse 14. This adapted "
+    "representation is made available under the Creative Commons "
+    "Attribution-ShareAlike 4.0 International License: "
+    "https://creativecommons.org/licenses/by-sa/4.0/."
 )
 
 
-def local_name(tag):
-    return tag.rsplit("}", 1)[-1]
+def reference(position):
+    book_position, chapter, verse = position
+    code = POSITION_CODES.get(book_position, f"book-{book_position}")
+    return f"{code} {chapter}:{verse}"
 
 
-def clean_text(text):
-    text = text.replace("\u00a0", " ")
-    return re.sub(r"\s+", " ", text).strip()
+def collect_records(path, book_code):
+    records = []
+    chapters = set()
+    chapter = None
+    current = None
+    source_id = None
 
+    def finish():
+        nonlocal current
+        if current is not None:
+            records.append(current)
+            current = None
 
-def extract_usx(path):
-    try:
-        root = ET.parse(path).getroot()
-    except ET.ParseError as error:
+    text = path.read_text(encoding="utf-8-sig", errors="strict")
+    total_footnotes = len(re.findall(r"\\f(?:\s|$)", text))
+
+    for line_number, raw_line in enumerate(text.splitlines(), start=1):
+        line = raw_line.rstrip()
+
+        id_match = re.match(r"^\\id\s+(\S+)", line)
+        if id_match and source_id is None:
+            source_id = id_match.group(1).upper()
+
+        chapter_match = re.match(r"^\\c\s+(\S+)", line)
+        if chapter_match:
+            finish()
+            chapter_token = chapter_match.group(1)
+            if not chapter_token.isdigit():
+                raise CommandError(
+                    f"Non-numeric chapter token {chapter_token!r} "
+                    f"in {path.name}:{line_number}."
+                )
+            chapter = int(chapter_token)
+            chapters.add(chapter)
+            continue
+
+        verse_match = re.match(r"^\\v\s+(\S+)", line)
+        if verse_match:
+            if chapter is None:
+                raise CommandError(
+                    f"Verse before chapter in {path.name}:{line_number}."
+                )
+            finish()
+            current = {
+                "book_code": book_code,
+                "chapter": chapter,
+                "verse_token": verse_match.group(1),
+                "line_number": line_number,
+                "lines": [line],
+            }
+            continue
+
+        if current is not None:
+            current["lines"].append(line)
+
+    finish()
+
+    if source_id != book_code:
         raise CommandError(
-            f"Invalid XML in {path}: {error}"
-        ) from error
+            f"Expected \\id {book_code} in {path.name}, found {source_id!r}."
+        )
 
-    fragments = {}
-    active = None
+    return records, chapters, total_footnotes
 
-    def append(text):
-        if active is not None and text:
-            fragments.setdefault(
-                active,
-                [],
-            ).append(text)
 
-    def walk(element):
-        nonlocal active
+def read_source(source_dir):
+    if not source_dir.is_dir():
+        raise CommandError(f"Source directory does not exist: {source_dir}")
 
-        name = local_name(element.tag)
+    expected_names = {f"{code}.usfm" for code in BOOK_CODES}
+    actual_names = {path.name for path in source_dir.glob("*.usfm")}
+    missing_files = sorted(expected_names - actual_names)
+    extra_files = sorted(actual_names - expected_names)
 
-        if name in EXCLUDED_ELEMENTS:
-            return
+    if missing_files or extra_files:
+        details = []
+        if missing_files:
+            details.append(f"missing files: {', '.join(missing_files)}")
+        if extra_files:
+            details.append(f"extra files: {', '.join(extra_files)}")
+        raise CommandError("Invalid OTCV source set; " + "; ".join(details))
 
-        if name == "verse":
-            sid = element.get("sid")
-            eid = element.get("eid")
+    source = {}
+    chapter_positions = set()
+    total_footnotes = 0
 
-            if sid:
-                match = MARKER_PATTERN.fullmatch(
-                    sid.strip()
+    for book_code in BOOK_CODES:
+        path = source_dir / f"{book_code}.usfm"
+        records, chapters, footnotes = collect_records(path, book_code)
+        total_footnotes += footnotes
+        book_position = BOOK_POSITIONS[book_code]
+
+        for chapter in chapters:
+            chapter_positions.add((book_position, chapter))
+
+        for record in records:
+            key = (
+                book_code,
+                record["chapter"],
+                record["verse_token"],
+            )
+            if key in source:
+                raise CommandError(
+                    f"Duplicate source reference: "
+                    f"{book_code} {record['chapter']}:"
+                    f"{record['verse_token']}"
                 )
+            source[key] = record
 
-                if not match:
-                    raise CommandError(
-                        f"Invalid verse marker "
-                        f"{sid!r} in {path}"
-                    )
+    if len(source) != EXPECTED_SOURCE_RECORDS:
+        raise CommandError(
+            f"Expected {EXPECTED_SOURCE_RECORDS} source records, "
+            f"found {len(source)}."
+        )
 
-                code, chapter, marker = (
-                    match.groups()
-                )
+    if len(chapter_positions) != EXPECTED_CHAPTERS:
+        raise CommandError(
+            f"Expected {EXPECTED_CHAPTERS} chapters, "
+            f"found {len(chapter_positions)}."
+        )
 
-                active = (
-                    code,
-                    int(chapter),
-                    marker,
-                )
+    if total_footnotes != EXPECTED_TOTAL_FOOTNOTES:
+        raise CommandError(
+            f"Expected {EXPECTED_TOTAL_FOOTNOTES} total footnotes, "
+            f"found {total_footnotes}."
+        )
 
-                if active in fragments:
-                    raise CommandError(
-                        f"Duplicate verse marker "
-                        f"{sid!r} in {path}"
-                    )
+    return source, chapter_positions, total_footnotes
 
-                fragments[active] = []
 
-            elif eid:
-                active = None
+def normalize_lines(lines, stats):
+    combined = "\n".join(lines)
+    combined, removed = re.subn(
+        r"\\f\s.*?\\f\*",
+        " ",
+        combined,
+        flags=re.DOTALL,
+    )
+    stats["footnotes_removed"] += removed
 
-            return
+    chunks = []
 
-        append(element.text)
+    for raw_line in combined.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
 
-        for child in element:
-            walk(child)
-            append(child.tail)
+        verse_match = re.match(r"^\\v\s+\S+\s*(.*)$", line)
+        if verse_match:
+            content = verse_match.group(1).strip()
+            if content:
+                chunks.append(content)
+            continue
 
-    walk(root)
+        marker_match = re.match(
+            r"^\\([A-Za-z][A-Za-z0-9]*)(?:\*)?\s*(.*)$",
+            line,
+        )
+        if marker_match:
+            marker, content = marker_match.groups()
+            content = content.strip()
+            if marker in TEXT_MARKERS or marker in INLINE_MARKERS:
+                if content:
+                    chunks.append(content)
+            elif marker in IGNORED_MARKERS:
+                continue
+            else:
+                stats["unknown_markers"][marker] += 1
+            continue
 
-    return {
-        key: clean_text("".join(parts))
-        for key, parts in fragments.items()
+        chunks.append(line)
+
+    text = " ".join(chunks)
+    text = re.sub(r"\\(?:sc|tl)\*?", "", text)
+
+    for marker in re.findall(
+        r"\\([A-Za-z][A-Za-z0-9]*)(?:\*)?",
+        text,
+    ):
+        stats["remaining_markers"][marker] += 1
+
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"\s+([,.;:!?])", r"\1", text)
+    return text.strip()
+
+
+def split_psalm_1_1_2(lines, stats):
+    verse_one_lines = [lines[0]]
+    verse_two_lines = []
+    second_part_started = False
+
+    for line in lines[1:]:
+        if (
+            not second_part_started
+            and re.match(r"^\\q1\s+\S", line.strip())
+        ):
+            second_part_started = True
+
+        if second_part_started:
+            verse_two_lines.append(line)
+        else:
+            verse_one_lines.append(line)
+
+    verse_one = normalize_lines(verse_one_lines, stats)
+    verse_two = normalize_lines(verse_two_lines, stats)
+
+    if not verse_one or not verse_two:
+        raise CommandError("Could not split Psalm 1:1-2 safely.")
+
+    return verse_one, verse_two
+
+
+def canonicalize(source, total_footnotes):
+    generated = {}
+    stats = {
+        "footnotes_removed": 0,
+        "unknown_markers": Counter(),
+        "remaining_markers": Counter(),
     }
 
+    for key, record in source.items():
+        book_code, chapter, verse_token = key
+        book_position = BOOK_POSITIONS[book_code]
 
-def load_source_texts(source_dir):
-    release_dir = source_dir / "release"
-    metadata_path = source_dir / "metadata.xml"
-    license_path = source_dir / "license.xml"
-
-    required = [
-        release_dir,
-        metadata_path,
-        license_path,
-    ]
-
-    missing = [
-        str(path)
-        for path in required
-        if not path.exists()
-    ]
-
-    if missing:
-        raise CommandError(
-            "Missing required source paths: "
-            + ", ".join(missing)
-        )
-
-    metadata = metadata_path.read_text(
-        encoding="utf-8"
-    )
-    license_text = license_path.read_text(
-        encoding="utf-8"
-    )
-
-    required_metadata = [
-        "Open Indian Tamil Contemporary Version",
-        "<abbreviation>OTCV</abbreviation>",
-        "<iso>tam</iso>",
-        "Creative Commons "
-        "Attribution-ShareAlike 4.0",
-        "Copyright © 2005, 2020, 2022 "
-        "by Biblica, Inc.",
-    ]
-
-    for expected in required_metadata:
-        if expected not in metadata:
-            raise CommandError(
-                "Expected metadata text was not "
-                f"found: {expected!r}"
+        if key == ("PSA", 1, "1-2"):
+            verse_one, verse_two = split_psalm_1_1_2(
+                record["lines"], stats
             )
-
-    if 'id="032ec262506b719f"' not in (
-        license_text
-    ):
-        raise CommandError(
-            "Unexpected OTCV license identifier"
-        )
-
-    usx_paths = sorted(
-        release_dir.rglob("*.usx")
-    )
-
-    if len(usx_paths) != 66:
-        raise CommandError(
-            "Expected 66 USX files, found "
-            f"{len(usx_paths)}"
-        )
-
-    raw_texts = {}
-
-    for usx_path in usx_paths:
-        extracted = extract_usx(usx_path)
-        overlap = set(raw_texts) & set(extracted)
-
-        if overlap:
-            raise CommandError(
-                "Duplicate source markers across "
-                f"USX files: {sorted(overlap)[:10]}"
-            )
-
-        raw_texts.update(extracted)
-
-    if len(raw_texts) != 31102:
-        raise CommandError(
-            "Expected 31,102 source markers, "
-            f"found {len(raw_texts):,}"
-        )
-
-    return raw_texts
-
-
-def build_normalized_texts(
-    raw_texts,
-    code_to_position,
-):
-    normalized = {}
-    third_john_15_text = None
-
-    for (
-        code,
-        chapter,
-        marker,
-    ), text in raw_texts.items():
-        if not text:
-            raise CommandError(
-                "Blank source text at "
-                f"{code} {chapter}:{marker}"
-            )
-
-        if (
-            code,
-            chapter,
-            marker,
-        ) == (
-            "PSA",
-            1,
-            "1-2",
-        ):
-            before, separator, after = (
-                text.partition(PSALM_BOUNDARY)
-            )
-
-            if not separator:
-                raise CommandError(
-                    "Could not find the expected "
-                    "Psalms 1:1-2 split boundary"
-                )
-
-            verse_one = before.strip()
-            verse_two = clean_text(
-                separator + after
-            )
-
-            if not verse_one.endswith(
-                PSALM_ONE_ENDING
-            ):
-                raise CommandError(
-                    "Unexpected Psalms 1:1 ending"
-                )
-
-            normalized[
-                (
-                    code_to_position["PSA"],
-                    1,
-                    1,
-                )
-            ] = verse_one
-
-            normalized[
-                (
-                    code_to_position["PSA"],
-                    1,
-                    2,
-                )
-            ] = verse_two
-
+            generated[(book_position, 1, 1)] = verse_one
+            generated[(book_position, 1, 2)] = verse_two
             continue
 
-        if (
-            code,
-            chapter,
-            marker,
-        ) == (
-            "3JN",
-            1,
-            "15",
-        ):
-            third_john_15_text = text
+        if key == ("3JN", 1, "15"):
             continue
 
-        try:
-            verse_number = int(marker)
-        except ValueError as error:
+        if not verse_token.isdigit():
             raise CommandError(
-                "Unsupported bridged marker: "
-                f"{code} {chapter}:{marker}"
-            ) from error
-
-        if code not in code_to_position:
-            raise CommandError(
-                f"Unsupported book code: {code}"
+                f"Unhandled verse token: "
+                f"{book_code} {chapter}:{verse_token}"
             )
 
-        position = (
-            code_to_position[code],
-            chapter,
-            verse_number,
-        )
+        verse_number = int(verse_token)
+        text = normalize_lines(record["lines"], stats)
 
-        if position in normalized:
+        if key == ("3JN", 1, "14"):
+            verse_15 = source.get(("3JN", 1, "15"))
+            if verse_15 is None:
+                raise CommandError("Missing 3 John 1:15 source record.")
+            text_15 = normalize_lines(verse_15["lines"], stats)
+            text = f"{text} {text_15}".strip()
+
+        position = (book_position, chapter, verse_number)
+        if position in generated:
             raise CommandError(
-                "Duplicate normalized position: "
-                f"{position}"
+                f"Duplicate canonical position: {reference(position)}"
             )
+        generated[position] = text
 
-        normalized[position] = text
-
-    if not third_john_15_text:
+    if len(generated) != EXPECTED_CANONICAL_TEXTS:
         raise CommandError(
-            "Source 3 John 1:15 was not found"
+            f"Expected {EXPECTED_CANONICAL_TEXTS} canonical texts, "
+            f"generated {len(generated)}."
         )
 
-    third_john_14 = (
-        code_to_position["3JN"],
-        1,
-        14,
-    )
+    empty_positions = [
+        position for position, text in generated.items() if not text
+    ]
+    if empty_positions:
+        sample = ", ".join(reference(item) for item in empty_positions[:10])
+        raise CommandError(f"Empty normalized verse texts: {sample}")
 
-    if third_john_14 not in normalized:
+    replacement_characters = sum(
+        text.count("\ufffd") for text in generated.values()
+    )
+    if replacement_characters:
         raise CommandError(
-            "Source 3 John 1:14 was not found"
+            f"Found {replacement_characters} UTF-8 replacement characters."
         )
 
-    normalized[third_john_14] = clean_text(
-        normalized[third_john_14]
-        + " "
-        + third_john_15_text
-    )
+    if stats["unknown_markers"]:
+        details = ", ".join(
+            f"\\{marker}={count}"
+            for marker, count in stats["unknown_markers"].most_common()
+        )
+        raise CommandError(f"Unknown leading USFM markers: {details}")
 
-    return normalized
+    if stats["remaining_markers"]:
+        details = ", ".join(
+            f"\\{marker}={count}"
+            for marker, count in stats["remaining_markers"].most_common()
+        )
+        raise CommandError(f"Remaining inline USFM markers: {details}")
+
+    if stats["footnotes_removed"] != EXPECTED_VERSE_FOOTNOTES:
+        raise CommandError(
+            f"Expected to remove {EXPECTED_VERSE_FOOTNOTES} verse "
+            f"footnotes, removed {stats['footnotes_removed']}."
+        )
+
+    outside_footnotes = total_footnotes - stats["footnotes_removed"]
+    if outside_footnotes != EXPECTED_OUTSIDE_FOOTNOTES:
+        raise CommandError(
+            f"Expected {EXPECTED_OUTSIDE_FOOTNOTES} outside-verse "
+            f"footnotes, found {outside_footnotes}."
+        )
+
+    digest = hashlib.sha256()
+    for position, text in sorted(generated.items()):
+        book_position, chapter, verse = position
+        book_code = POSITION_CODES[book_position]
+        digest.update(
+            f"{book_code}\t{chapter}\t{verse}\t{text}\n".encode("utf-8")
+        )
+    canonical_sha256 = digest.hexdigest()
+
+    if canonical_sha256 != EXPECTED_CANONICAL_SHA256:
+        raise CommandError(
+            "Canonical SHA256 mismatch. "
+            f"Expected {EXPECTED_CANONICAL_SHA256}, "
+            f"found {canonical_sha256}."
+        )
+
+    return generated, stats, outside_footnotes, canonical_sha256
 
 
 class Command(BaseCommand):
     help = (
-        "Import the Open Indian Tamil "
-        "Contemporary Version from its DBL USX "
-        "release bundle."
+        "Import the CC BY-SA 4.0 Open Indian Tamil Contemporary "
+        "Version USFM files."
     )
 
     def add_arguments(self, parser):
         parser.add_argument(
             "source_dir",
-            nargs="?",
             type=Path,
-            default=DEFAULT_SOURCE_DIR,
+            help="Directory containing the 66 OTCV USFM files.",
+        )
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Validate sources and canonical mappings without writing.",
         )
 
     def handle(self, *args, **options):
-        source_dir = options["source_dir"]
+        source_dir = options["source_dir"].expanduser().resolve()
+        dry_run = options["dry_run"]
 
-        if not source_dir.is_dir():
-            raise CommandError(
-                f"Source directory not found: "
-                f"{source_dir}"
-            )
+        self.stdout.write("OTCV IMPORT VALIDATION")
+        self.stdout.write(f"Source: {source_dir}")
+        self.stdout.write(f"Mode: {'DRY RUN' if dry_run else 'IMPORT'}")
 
-        books = list(
-            Book.objects.order_by(
-                "position"
-            ).values_list(
-                "position",
-                "name",
-            )
+        source, chapter_positions, total_footnotes = read_source(source_dir)
+        generated, stats, outside_footnotes, canonical_sha256 = canonicalize(
+            source, total_footnotes
         )
 
-        if len(books) != 66:
-            raise CommandError(
-                "Expected 66 canonical books, "
-                f"found {len(books)}"
-            )
-
-        if len(BOOK_CODES) != 66:
-            raise CommandError(
-                "Internal book-code mapping is "
-                "not complete"
-            )
-
-        code_to_position = {
-            code: position
-            for code, (
-                position,
-                book_name,
-            ) in zip(
-                BOOK_CODES,
-                books,
-            )
-        }
-
-        raw_texts = load_source_texts(
-            source_dir
-        )
-
-        normalized = build_normalized_texts(
-            raw_texts,
-            code_to_position,
-        )
-
-        canonical_verses = {
-            (
+        verse_objects = {}
+        duplicate_database_positions = []
+        for verse in Verse.objects.select_related("chapter__book").all():
+            position = (
                 verse.chapter.book.position,
                 verse.chapter.number,
                 verse.number,
-            ): verse
-            for verse in Verse.objects.select_related(
-                "chapter__book"
             )
-        }
+            if position in verse_objects:
+                duplicate_database_positions.append(position)
+            verse_objects[position] = verse
 
-        canonical_positions = set(
-            canonical_verses
-        )
-        source_positions = set(normalized)
-
-        missing = sorted(
-            canonical_positions - source_positions
-        )
-        extra = sorted(
-            source_positions - canonical_positions
-        )
-
-        if missing or extra:
+        if duplicate_database_positions:
+            sample = ", ".join(
+                reference(item) for item in duplicate_database_positions[:10]
+            )
             raise CommandError(
-                "Canonical position mismatch. "
-                f"Missing: {missing[:20]}; "
-                f"extra: {extra[:20]}"
+                f"Duplicate canonical database positions: {sample}"
             )
 
-        if len(normalized) != 31102:
+        database_positions = set(verse_objects)
+        generated_positions = set(generated)
+        missing_positions = sorted(database_positions - generated_positions)
+        extra_positions = sorted(generated_positions - database_positions)
+
+        if missing_positions or extra_positions:
+            details = []
+            if missing_positions:
+                sample = ", ".join(
+                    reference(item) for item in missing_positions[:10]
+                )
+                details.append(
+                    f"missing={len(missing_positions)} ({sample})"
+                )
+            if extra_positions:
+                sample = ", ".join(
+                    reference(item) for item in extra_positions[:10]
+                )
+                details.append(f"extra={len(extra_positions)} ({sample})")
             raise CommandError(
-                "Expected 31,102 normalized verse "
-                f"texts, found {len(normalized):,}"
+                "OTCV canonical positions do not match the database: "
+                + "; ".join(details)
             )
 
-        for position, text in normalized.items():
-            if not text:
-                raise CommandError(
-                    f"Blank text at {position}"
-                )
+        self.stdout.write(f"Raw source records: {len(source)}")
+        self.stdout.write(f"Books: {len(BOOK_CODES)}")
+        self.stdout.write(f"Chapters: {len(chapter_positions)}")
+        self.stdout.write(f"Canonical verse texts: {len(generated)}")
+        self.stdout.write(
+            f"Verse footnotes removed: {stats['footnotes_removed']}"
+        )
+        self.stdout.write(
+            f"Non-verse footnotes omitted: {outside_footnotes}"
+        )
+        self.stdout.write(f"Canonical SHA256: {canonical_sha256}")
+        self.stdout.write("Missing positions: 0")
+        self.stdout.write("Extra positions: 0")
+        self.stdout.write("Remaining USFM markers: 0")
+        self.stdout.write("License: CC BY-SA 4.0")
+        self.stdout.write(
+            "Adaptation: formatting, headings, superscriptions, and "
+            "footnotes omitted; Psalm 1 and 3 John canonicalized."
+        )
 
-            if "\ufffd" in text:
-                raise CommandError(
-                    "Replacement character found "
-                    f"at {position}"
+        if dry_run:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "Dry run passed. No database records were changed."
                 )
-
-            if re.search(r"<[^>]+>", text):
-                raise CommandError(
-                    "HTML/XML marker found at "
-                    f"{position}"
-                )
+            )
+            return
 
         with transaction.atomic():
-            version, created = (
-                BibleVersion.objects.update_or_create(
-                    abbreviation=ABBREVIATION,
-                    defaults={
-                        "name": VERSION_NAME,
-                        "language": LANGUAGE,
-                        "year": YEAR,
-                        "description": DESCRIPTION,
-                        "pdf_filename": "",
-                    },
-                )
+            version = (
+                BibleVersion.objects.select_for_update()
+                .filter(abbreviation=VERSION_ABBREVIATION)
+                .first()
             )
 
-            VerseText.objects.filter(
+            created = version is None
+            if created:
+                version = BibleVersion.objects.create(
+                    name=VERSION_NAME,
+                    abbreviation=VERSION_ABBREVIATION,
+                    language=VERSION_LANGUAGE,
+                    year=VERSION_YEAR,
+                    description=VERSION_DESCRIPTION,
+                    pdf_filename="",
+                )
+            else:
+                version.name = VERSION_NAME
+                version.language = VERSION_LANGUAGE
+                version.year = VERSION_YEAR
+                version.description = VERSION_DESCRIPTION
+                version.save(
+                    update_fields=[
+                        "name", "language", "year", "description"
+                    ]
+                )
+
+            previous_count = VerseText.objects.filter(
                 bible_version=version
-            ).delete()
+            ).count()
+            VerseText.objects.filter(bible_version=version).delete()
 
             VerseText.objects.bulk_create(
                 [
                     VerseText(
                         bible_version=version,
-                        verse=canonical_verses[
-                            position
-                        ],
+                        verse=verse_objects[position],
                         text=text,
                     )
-                    for position, text in sorted(
-                        normalized.items()
-                    )
+                    for position, text in sorted(generated.items())
                 ],
                 batch_size=1000,
             )
 
-        action = (
-            "Created"
-            if created
-            else "Updated"
-        )
+            imported_count = VerseText.objects.filter(
+                bible_version=version
+            ).count()
+            if imported_count != EXPECTED_CANONICAL_TEXTS:
+                raise CommandError(
+                    f"Expected {EXPECTED_CANONICAL_TEXTS} imported texts, "
+                    f"found {imported_count}; transaction rolled back."
+                )
 
+        action = "Created" if created else "Updated"
         self.stdout.write(
             self.style.SUCCESS(
-                f"{action}: {VERSION_NAME} "
-                f"({ABBREVIATION})"
+                f"{action}: {VERSION_NAME} ({VERSION_ABBREVIATION})"
             )
         )
+        self.stdout.write(f"Previous verse texts: {previous_count}")
+        self.stdout.write(f"Imported verse texts: {imported_count}")
         self.stdout.write(
-            f"Language: {LANGUAGE}"
-        )
-        self.stdout.write(
-            f"Year: {YEAR}"
-        )
-        self.stdout.write(
-            f"Books: {len(books)}"
-        )
-        self.stdout.write(
-            "Chapters: 1189"
-        )
-        self.stdout.write(
-            "Canonical positions: "
-            f"{len(canonical_positions)}"
-        )
-        self.stdout.write(
-            "Imported verse texts: "
-            f"{len(normalized)}"
-        )
-        self.stdout.write(
-            "Normalization: split bridged "
-            "Psalms 1:1-2"
-        )
-        self.stdout.write(
-            "Normalization: combined source "
-            "3 John 1:15 with canonical "
-            "3 John 1:14"
-        )
-        self.stdout.write(
-            "License: CC BY-SA 4.0"
-        )
-        self.stdout.write(
-            "Copyright: Copyright © 2005, "
-            "2020, 2022 by Biblica, Inc."
-        )
-        self.stdout.write(
-            "PDF: not configured"
+            self.style.SUCCESS("OTCV import completed successfully.")
         )

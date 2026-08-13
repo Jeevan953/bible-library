@@ -1,0 +1,55 @@
+.version-notice {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0.9rem 0 1rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.7rem;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.version-notice summary {
+  cursor: pointer;
+  color: #1e3a8a;
+  font-weight: 700;
+}
+
+.version-notice p {
+  margin: 0.75rem 0 0;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.reader-version-notice {
+  margin: 0 0 1.5rem;
+}
+
+.site-license-footer {
+  padding: 1rem 1.5rem 2rem;
+  text-align: center;
+}
+
+.site-license-footer button {
+  padding: 0.25rem;
+  border: 0;
+  background: transparent;
+  color: #1d4ed8;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.site-license-footer button:hover,
+.site-license-footer button:focus-visible {
+  color: #1e3a8a;
+}
+
+@media (max-width: 640px) {
+  .version-notice {
+    font-size: 0.84rem;
+  }
+}

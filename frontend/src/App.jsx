@@ -8,6 +8,7 @@ import SearchPage from "./SearchPage";
 import { getVersions } from "./services/bibleApi";
 
 import "./App.css";
+import "./VersionNotice.css";
 
 const MEDIA_URL = (
   import.meta.env.VITE_MEDIA_URL ||
@@ -286,6 +287,19 @@ function App() {
                       : "Year unknown"}
                   </p>
 
+                  {version.description && (
+                    <details
+                      className="version-notice"
+                      open={version.abbreviation === "OTCV"}
+                    >
+                      <summary>
+                        Copyright, source &amp; license
+                      </summary>
+
+                      <p>{version.description}</p>
+                    </details>
+                  )}
+
                   <button
                     type="button"
                     disabled={!version.available}
@@ -314,6 +328,15 @@ function App() {
           </section>
         )}
       </main>
+
+      <footer className="site-license-footer">
+        <button
+          type="button"
+          onClick={openVersions}
+        >
+          Bible-version copyright, source, and license notices
+        </button>
+      </footer>
     </div>
   );
 }
