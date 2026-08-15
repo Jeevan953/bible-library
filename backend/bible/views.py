@@ -14,6 +14,7 @@ from .models import (
     BibleVersion,
     Book,
     Chapter,
+    HitchcockName,
     ProperName,
     TamilDictionaryEntry,
     Verse,
@@ -425,6 +426,12 @@ class BibleSearchAPIView(APIView):
                 page,
             )
 
+        if search_mode == "HITCHCOCK_NAMES":
+            return self.search_hitchcock_names(
+                query,
+                page,
+            )
+
         if search_mode == "TAMIL_DICTIONARY":
             return self.search_tamil_dictionary(
                 query,
@@ -493,6 +500,65 @@ class BibleSearchAPIView(APIView):
                         "Non-Profitable reasons only"
                     ),
                     "url": "http://www.WordOfGod.in",
+                },
+            }
+        )
+
+    def search_hitchcock_names(self, query, page):
+        matches = (
+            HitchcockName.objects.filter(
+                Q(name__icontains=query)
+                | Q(definition__icontains=query)
+            )
+            .order_by("name", "source_id")
+        )
+
+        total_results = matches.count()
+        total_pages = max(
+            1,
+            (
+                total_results + self.page_size - 1
+            ) // self.page_size,
+        )
+
+        start = (page - 1) * self.page_size
+        end = start + self.page_size
+
+        results = [
+            {
+                "result_type": "hitchcock_name",
+                "id": entry.id,
+                "source_id": entry.source_id,
+                "name": entry.name,
+                "definition": entry.definition,
+            }
+            for entry in matches[start:end]
+        ]
+
+        return Response(
+            {
+                "query": query,
+                "mode": "hitchcock_names",
+                "search_type": "hitchcock_names",
+                "version": None,
+                "count": total_results,
+                "page": page,
+                "total_pages": total_pages,
+                "results": results,
+                "attribution": {
+                    "name": (
+                        "Hitchcock's Bible Names Dictionary"
+                    ),
+                    "creator": "Roswell D. Hitchcock",
+                    "original_publication": 1869,
+                    "electronic_source": (
+                        "Christian Classics Ethereal Library"
+                    ),
+                    "rights": "Public Domain",
+                    "url": (
+                        "https://www.ccel.org/ccel/"
+                        "hitchcock/bible_names.html"
+                    ),
                 },
             }
         )

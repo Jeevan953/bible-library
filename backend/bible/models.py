@@ -183,3 +183,23 @@ class ProperName(models.Model):
 
     def __str__(self):
         return f"{self.display_name} ({self.category})"
+
+
+class HitchcockName(models.Model):
+    source_id = models.CharField(
+        max_length=64,
+        unique=True,
+    )
+    name = models.CharField(
+        max_length=200,
+        db_index=True,
+    )
+    definition = models.TextField()
+
+    class Meta:
+        ordering = ["name", "source_id"]
+        verbose_name = "Hitchcock Bible name"
+        verbose_name_plural = "Hitchcock Bible names"
+
+    def __str__(self):
+        return self.name

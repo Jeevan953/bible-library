@@ -1,3 +1,13 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import HitchcockName
+
+
+@admin.register(HitchcockName)
+class HitchcockNameAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "source_id",
+        "definition",
+    )
+    search_fields = ("name", "definition")

@@ -90,6 +90,25 @@ function ProperNameResult({ result }) {
 }
 
 
+function HitchcockNameResult({ result }) {
+  return (
+    <article className="search-result proper-name-result">
+      <div className="proper-name-title-row">
+        <h3>{result.name}</h3>
+
+        <span className="proper-name-category">
+          Hitchcock
+        </span>
+      </div>
+
+      <p className="proper-name-description">
+        {result.definition}
+      </p>
+    </article>
+  );
+}
+
+
 function TamilDictionaryResult({ result }) {
   return (
     <article
@@ -117,6 +136,10 @@ function TamilDictionaryResult({ result }) {
 function getResultScope(searchData) {
   if (searchData.mode === "proper_names") {
     return "Proper Names";
+  }
+
+  if (searchData.mode === "hitchcock_names") {
+    return "Hitchcock’s Bible Names";
   }
 
   if (searchData.mode === "tamil_dictionary") {
@@ -158,6 +181,9 @@ function SearchPage({
   const properNamesMode =
     selectedVersion === "PROPER_NAMES";
 
+  const hitchcockNamesMode =
+    selectedVersion === "HITCHCOCK_NAMES";
+
   const tamilDictionaryMode =
     selectedVersion === "TAMIL_DICTIONARY";
 
@@ -169,9 +195,11 @@ function SearchPage({
       setError(
         properNamesMode
           ? "Enter a proper name to search."
-          : tamilDictionaryMode
-            ? "Enter a Tamil word or definition to search."
-            : "Enter a word, phrase, or Bible reference.",
+          : hitchcockNamesMode
+            ? "Enter a Bible name or meaning to search."
+            : tamilDictionaryMode
+              ? "Enter a Tamil word or definition to search."
+              : "Enter a word, phrase, or Bible reference.",
       );
       return;
     }
@@ -223,9 +251,11 @@ function SearchPage({
           <h1>
             {properNamesMode
               ? "Search Proper Names"
-              : tamilDictionaryMode
-                ? "Search Tamil Bible Dictionary"
-                : "Search Scripture"}
+              : hitchcockNamesMode
+                ? "Search Hitchcock’s Bible Names"
+                : tamilDictionaryMode
+                  ? "Search Tamil Bible Dictionary"
+                  : "Search Scripture"}
           </h1>
         </header>
 
@@ -255,6 +285,10 @@ function SearchPage({
                 Proper Names
               </option>
 
+              <option value="HITCHCOCK_NAMES">
+                Hitchcock’s Bible Names
+              </option>
+
               <option value="TAMIL_DICTIONARY">
                 Tamil Bible Dictionary
               </option>
@@ -276,9 +310,11 @@ function SearchPage({
           <label className="search-query-label">
             {properNamesMode
               ? "Name, Strong’s number, or description"
-              : tamilDictionaryMode
-                ? "Tamil word or definition"
-                : "Word, phrase, or reference"}
+              : hitchcockNamesMode
+                ? "Bible name or meaning"
+                : tamilDictionaryMode
+                  ? "Tamil word or definition"
+                  : "Word, phrase, or reference"}
 
             <input
               type="search"
@@ -286,9 +322,11 @@ function SearchPage({
               placeholder={
                 properNamesMode
                   ? "Example: Abraham or H0085"
-                  : tamilDictionaryMode
-                    ? "உதாரணம்: தேவன், பவுல் அல்லது எருசலேம்"
-                    : "Example: faith, John 1, or John 1:1"
+                  : hitchcockNamesMode
+                    ? "Example: Abraham, peace, or deliverer"
+                    : tamilDictionaryMode
+                      ? "உதாரணம்: தேவன், பவுல் அல்லது எருசலேம்"
+                      : "Example: faith, John 1, or John 1:1"
               }
               disabled={loading}
               onChange={(event) =>
@@ -331,9 +369,11 @@ function SearchPage({
             <p className="status">
               {searchData.mode === "proper_names"
                 ? "No matching proper names were found."
-                : searchData.mode === "tamil_dictionary"
-                  ? "பொருத்தமான அகராதிப் பதிவுகள் கிடைக்கவில்லை."
-                  : "No matching verses were found."}
+                : searchData.mode === "hitchcock_names"
+                  ? "No matching Hitchcock names were found."
+                  : searchData.mode === "tamil_dictionary"
+                    ? "பொருத்தமான அகராதிப் பதிவுகள் கிடைக்கவில்லை."
+                    : "No matching verses were found."}
             </p>
           ) : (
             <div className="result-list">
@@ -342,6 +382,12 @@ function SearchPage({
                 "proper_name" ? (
                   <ProperNameResult
                     key={`proper-name-${result.id}`}
+                    result={result}
+                  />
+                ) : result.result_type ===
+                  "hitchcock_name" ? (
+                  <HitchcockNameResult
+                    key={"hitchcock-name-" + result.id}
                     result={result}
                   />
                 ) : result.result_type ===
@@ -377,6 +423,32 @@ function SearchPage({
                 </a>
                 {" — "}
                 {searchData.attribution.license}
+              </p>
+            )}
+
+          {searchData.mode === "hitchcock_names" &&
+            searchData.attribution && (
+              <p className="proper-name-attribution">
+                <strong>
+                  {searchData.attribution.name}
+                </strong>
+                {" by "}
+                {searchData.attribution.creator}
+                {" (originally published "}
+                {searchData.attribution.original_publication}
+                {"). Electronic edition: "}
+                <a
+                  href={searchData.attribution.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {
+                    searchData.attribution
+                      .electronic_source
+                  }
+                </a>
+                {". Rights: "}
+                {searchData.attribution.rights}.
               </p>
             )}
 
